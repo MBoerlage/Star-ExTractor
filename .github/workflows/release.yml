@@ -1,0 +1,45 @@
+name: Release
+
+on:
+  push:
+    tags: ["v*"]
+
+permissions:
+  contents: write  # create the GitHub Release and upload its files
+
+jobs:
+  build:
+    runs-on: windows-latest
+    env:
+      PYTHONIOENCODING: utf-8
+    steps:
+      - uses: actions/checkout@v4.2.2
+        with:
+          fetch-depth: 0  # the tag message becomes the release notes
+      - uses: actions/setup-python@v5.3.0
+        with:
+          python-version: "3.11"
+          cache: pip
+      - name: Check the tag matches pyproject.toml
+        shell: pwsh
+        run: |
+          $v = (Select-String -Path pyproject.toml -Pattern '^version\s*=\s*"([^"]+)"').Matches[0].Groups[1].Value
+          if ("v$v" -ne "${{ github.ref_name }}") { throw "tag ${{ github.ref_name }} does not match version $v" }
+      - name: Install
+        run: python -m pip install -e ".[dev,build]"
+      - name: Install Inno Setup 6
+        run: choco install innosetup --no-progress -y
+      - name: Build, self-test the frozen app, installer, zip, checksums
+        shell: pwsh
+        run: ./packaging/build.ps1 -Python python
+      - name: Release notes from the tag message
+        shell: pwsh
+        run: |
+          git tag -l --format='%(contents)' "${{ github.ref_name }}" | Out-File -Encoding utf8 notes.md
+          if (-not (Get-Content notes.md -Raw).Trim()) { "Star ExTractor ${{ github.ref_name }}" | Out-File -Encoding utf8 notes.md }
+      - name: Create the GitHub Release
+        shell: pwsh
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          gh release create "${{ github.ref_name }}" (Get-ChildItem dist/release/*).FullName --title "Star ExTractor ${{ github.ref_name }}" --notes-file notes.md

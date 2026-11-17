@@ -1,0 +1,15 @@
+# ZWO ASI585MM Pro: gain slider -> e-/ADU for 16-bit FITS pixels (ZWO 12-bit value / 16), read noise, full well.
+# Source: ZWO spec sheet values as recorded in SpectroInspector's ASI585_TABLE (Matt, 2026-11-17; numbers only).
+# HCG mode starts at gain 200: never interpolate across it. Frame headers (EGAINSAV, RDNOISE) take precedence.
+gain,e_per_adu_16bit,read_noise_e,full_well_e
+0,0.594,6.5,40000
+50,0.344,5.5,22000
+100,0.188,4.7,11000
+150,0.113,4.1,6000
+195,0.063,4.0,4000
+200,0.047,1.0,2500
+250,0.022,0.8,1500
+300,0.011,0.7,1000
+350,0.006,0.8,700
+400,0.003,0.7,300
+450,0.001,0.6,150

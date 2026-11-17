@@ -1,0 +1,106 @@
+# UI specification
+
+Approved mockups: `docs/ui_mockups/Step1Files.png … Step6Export.png` (each `.html` next to it holds exact text and colours; open in a browser). All sample numbers, names and curves in them are illustrative. The mockups are 1280 px wide; the real window must be resizable (min 1100 × 700), with the right column collapsing under the viewer on narrow windows.
+
+## Shell (all screens)
+- **Top bar:** logo + "Spectro Pipeline" (renamed: **Star EX Tractor** (Matt 2026-11-16), then **Star ExTractor** (Matt 2026-11-17)), session chip `Session …\2026-08-20 ▾` (menu: New, Open, Recent), `Target` field (SIMBAD name…), `Reference` field, orange **Run all**.
+- **Tabs:** `Reduce | Export`.
+- **Ribbon:** five chevron steps Files, Geometry, 1D Extract, Wavelength, Response. Each shows number or ✓, name, one-line status (e.g. "Tilt 0.3° · smile fixed", "4 lines · RMS 0.04 Å"), and a grey subtitle. States: done (green), current (blue: the selected step is neutral; orange is reserved for signals and actions), missing data (red, "!"), not run (grey, dashed circle). Legend row under it and the note "Changing a step turns every later step grey until it is re-run." Click a step to open it; later steps with no valid input are clickable but show a "missing data" banner.
+- **Step header:** `STEP n OF 5`, title, description (1–2 lines), right side: input chip → output chip (e.g. `Target_G.fit → Target_X.fit`), ◀ 1/2 ▶ (target/reference), **Run this image**, **Run both** (orange), **Params ▾**. Steps with one image set show a single **Run**.
+- **Log panel** at the bottom of each screen: timestamped one-liners.
+
+## 1 · Files (tall page, scrolls)
+Section A **Lights** (Target and Reference, one card each):
+- Folder path + Browse…, summary line `90 s · gain 200 · −6.8 °C · 3840×2160`.
+- **Target name** field + **Verify with SIMBAD**; shows the name found in the file header, a status line (not verified / resolved by SIMBAD with spectral type / offline hint). **Coordinates from:** SIMBAD | From header | Enter by hand (RA, Dec fields).
+- **Loaded frames** table: Use ☑, File, Time (UT), Exp, Peak ADU (flag "near saturation"), ✕ remove. Buttons: Add files…, Remove unticked. Counter "11 of 12 used".
+- **Calibration it will use:** Dark (e.g. "90 s · exact match" or scaled), Bias, Flat (optional). Missing one → red "Reference needs a dark" on the ribbon.
+- **Stack settings:** method (Sigma-clip mean | Median), rejection σ, Align frames (off for a fixed slit).
+- Stack bar: **Stack target only** / **Stack target + reference →**.
+
+Section B **Calibration library** (below the lights): table of masters (kind, exposure, gain, offset, temp, n frames, date, used by), select/deselect, preview; **Create masters** bins for Dark, Bias, Flat (optional): drop/choose a folder, shows what will be built, builds with progress; library holds several dark masters to match different exposure times. Warnings for gain/offset/temperature mismatches with "Use anyway".
+
+## 2 · Geometry
+- Viewer card: tabs Target stack | Reference stack | Lamp (optional); toolbar Fit & auto, Fit, ×1, ↔; cursor readout `X 1204 · Y 436 · 31 820 ADU`; Original | Corrected toggle; **Y ZOOM** chips (Full height, Fit to spectrum, ×2, ×4, ×8, ×16) and `rows 280–568 of 2160`.
+- Left of the image: 50 px wide full-height **frame strip** with a draggable amber window (grip tabs, ⇕); row ruler on the image with wheel-zoom; X is fixed.
+- **Draw angle** interaction: caption steps ① press at one end of the spectrum, ② drag (line follows cursor), ③ release (angle measured, frame straightened, label "0.31° · straightening").
+- **Result** strip: corrected rows, `tilt 0.31° removed`.
+- Right column cards: *Geometry for this spectrograph* (Use saved geometry ☑, residual message), *Tilt* (Detect | Draw angle, Angle (°), Preview / Set values / Redraw), *Slant* (optional, docs/GEOMETRY_SLANT.md: **Correct slant** ☐ default off; Detect = sky-row block correlation with ± and block pairs, or "Slant could not be measured: … Use Draw angle"; Draw angle along a leaning streak on either view, measured in image pixels whatever the Y zoom, with what the view already removed added back (the tilt on Original, the applied slant on Corrected); Angle (°) + Enter; estimated-impact line "lines move x px across the band and y px at the sky rows" from the Extract bands if set, else 21 / 40 rows; one value for the night, used for both images (the wavelength solution is carried from the reference to the target), applied only when ticked, then tilt + slant are one resample about the spectrum row; Set values also saves the slant when it is on), *Smile* (Radius px, Y position, needs lamp), *Pixels* (hot pixels).
+
+## 3 · 1D Extract
+- Same viewer family with **Pre-extraction | Sky-subtracted** toggle, same Y-zoom and frame strip (bands marked blue/brown in the strip).
+- Draggable band edges with row numbers following the cursor. Blue = Spectrum, brown = Sky A and Sky B.
+- Cards: *Profile from the blue band* (live 1D preview), *Bands* (Auto-place from the brightest row; Spectrum / Sky A / Sky B Top & Bottom fields), *Extraction* (Method: Sum of rows; Subtract sky background: mean of Sky A and Sky B; peak row note), *Reuse* (Copy bands to the reference stack).
+
+## 4 · Wavelength
+- Viewer tabs Reference profile | Target profile | Lamp (optional); profile plot (detector column px on X) with amber dashed Balmer markers labelled `Hδ 4102 … Hα 6563`, draggable.
+- **Calibration points** table (`# | Line | Pixel | Wavelength Å | Error Å`, delete icon), Fit order **Linear | Quadratic** (locked when refining), Unit Å | nm, footer Total error / RMS / Dispersion.
+- **Coefficients** (BASS-style) box: one line `a,b,c` in nm, offset first, **Copy** and **Paste to apply** (format and numbers per `docs/BASS_CALIBRATION.md`; the mockup's values and 1.85 Å/px are placeholders); a, b, c broken out; linear FITS terms CRVAL1/CDELT1. The explanation of the box sits in an (i) popup after the heading "Coefficients". (No .xls export and no "Copy linear FITS terms": removed by Matt, 2026-11-16.) The profile chart has a **Display px | Å** toggle once a solution exists.
+- Right column: *Solution* (radio: Refine the saved solution (shift only) | Fit freely from these lines | Use a lamp frame instead; "Shift from the saved solution: +0.4 px"), *Resolution* (FWHM Å, R value; measured on Hβ; saved to header), *Lines* (Add or remove lines…, Fit again).
+
+## 5 · Response
+- **Build the response** plot: Observed reference, Library (e.g. A0V Pickles), Raw response, Smoothed response (pink, the one applied), each with a Show checkbox; shaded masked regions; wavelength axis Å.
+- **Corrected spectra** plot: Target (teal) and Reference (purple), Show checkboxes, Å | nm toggle, Hα marker.
+- Right: *Response* (Library dropdown, Mask Balmer lines, Mask telluric bands, Airmass correction with "Reference 1.18 · target 1.38", Smoothing, **Follow the upper envelope (ignore absorption dips)** ☑ default on — the pink curve is an asymmetric penalised spline riding on the top of the raw response, telluric masks widened by 30 Å and dips > 8 % below a running upper envelope ignored in 6850–7400 / 7550–7750 Å, gaps bridged smoothly; off = bin medians as before, Save response, No response), *Normalise and crop* (Norm. from/to Å, Crop low/high Å, defaults 5500–5600 and 3900–7700), orange **Continue to Export →**.
+
+## Export tab
+- Header "Export", explanatory line. Ribbon stays visible (all green when done).
+- **Spectrum to publish · target only:** X zoom chips (Full | Blue Balmer | Hα + telluric | O₂ A band | Custom), from/to Å inputs, checkboxes Balmer lines and Telluric bands, Å | nm toggle; plot with dashed amber Balmer lines (labelled), blue telluric bands (O₂ γ 6276–6290, O₂ B 6867–6886, H₂O 7160–7340), peak readout (`peak 6562.9 Å · Δ +0.1 Å from Hα`), and a whole-spectrum overview strip with a draggable amber window. Wheel over the axis zooms X.
+- Card **AAVSO AVSpec** with ✓ / ! pre-flight lines, **Prepare AVSpec file** (writes the file and the process log next to it; no web page opens) and **Open export folder**. No ARAS card (removed by Matt, 2026-11-16). Object name card beside it (VSX check optional). **Observer / Location / Equipment** cards in a row at the bottom centre, above the FITS header preview; the plot spans the full width.
+- Right column cards: **Object name** (AVSpec only: OBJNAME field + **Check VSX name** button with a result line; online, one request per click), **Observer** (AAVSO obscode, name), **Location** (site name, lat, long, elevation), **Equipment** (instrument name, spectrograph, telescope, camera, "Remember for future sessions").
+- **Files** card: Save FITS, Export .dat / CSV, Save PNG, Process log. Note: uploading happens on the database websites.
+- **FITS header preview** (live key/value table).
+
+## Behaviour details worth keeping
+- Y zoom changes the view only, never the file; angles are measured in real pixels.
+- Chips and toggles are 34 px high minimum; the whole app is keyboard-usable (Tab order follows reading order, Enter = Run).
+- Errors appear next to the control that caused them, in plain words.
+
+## Update (2026-11-16, Matt's review + M7)
+- **One top row:** logo + "Star ExTractor", tabs **Plan | Acquisition | Reduce | Export**, session chip, ⚙ Settings, **Run all**. The Target/Reference top fields are gone (names are set in Files). 
+- The step ribbon and its legend show on the **Reduce** tab only.
+- Step headers have no "Params ▾" menu any more (it only held demo actions).
+- Export: the **Object name** card sits above the chart; **Check VSX name** shows the VSX identity (AUID, type, period, range, Sp, J2000) and **Use VSX name** applies it. Location defaults to the frame headers.
+- **Consistency notes** under every Reduce step header (core/identity.py, up to 4 lines): the Plan's star differs from the Files name; the Files name differs from the lights' OBJECT (info only, OBJECT never assigns a role); the reference has no spectral type, or is an emission/early-type star; coordinates or site missing for the airmass correction. Files shows "The Plan has …" with **Use Plan** (name, coordinates, and through the name the spectral type) whenever the Plan's star differs; nothing is copied by itself. Response takes the spectral type from Files SIMBAD, else from the Plan when it is the same star. Export uses the airmass the Response step wrote (one value everywhere) and shows the resolving power measured by Wavelength with **Use**.
+- **Sessions are named after the observing night** (local noon to noon): New session uses the night of the lights already chosen, else tonight (before noon: last night). The Acquisition sets file uses the same night. Files finds the sets file in this session, else in a sibling session folder whose sets name the same light folder or this folder's night (chip "sets file from … · in <folder>").
+- **The spectrograph record** (`instrument_starex_lr.json`): flips, tilt and slant (Geometry), dispersion with FWHM and R (Wavelength; R offered in Export), default band rows from the spectrum row (Extract → **Save as default rows**), crop and normalisation (saved when edited in Response, the start of new sessions). Acquisition uses the saved tilt (in detector pixels: each flip mirrors the slope) and shows columns/rows flipped like Reduce (view only). Extract bands are stored with the spectrum row they were set on and follow the spectrum when Geometry moves it; an image without stored bands starts from tonight's Acquisition rows for that set, else the default rows, else auto-placement.
+- **Run all** runs only the steps that are out of date, in order (a step re-run upstream makes the later ones out of date, so they follow); Shift+click re-runs every step.
+- **Keyboard:** Ctrl+Enter Run all (out of date) · Ctrl+Shift+Enter re-run every step · F5 run current step · Esc stop · Ctrl+1…5 steps · Alt+←/→ previous/next step · Ctrl+PgUp/PgDn tabs · Ctrl+N/Ctrl+O new/open session · Ctrl+, settings. (Enter is not bound globally: it confirms text fields.)
+- **Settings dialog:** master library folder, master tolerances, VSX address (+ clear VSX cache), open settings folder.
+- Window size and position are remembered; every screen fits at the 1100×700 minimum.
+- Unexpected errors: one plain line in the log plus a message box; the traceback goes to `error.log` in the settings folder.
+- **Top tabs** are exclusive checkable buttons (`ui/tab_row.py`), each fixed to its bold label width. A QTabBar grew 2–4 px when a bold tab was selected, showed blank scroll buttons and scrolled "Plan" away. Window minimum width = max(1100, top row minimum).
+- **Export has three chevrons:** **Collect data** (object name, spectrum, observer/location/equipment, header preview) → **Test** (AVSpec requirements + the file written to a temp folder and read back with astropy; runs when opened, "Run test again") → **Publish** (Save AVSpec file and log, Open export folder, Files card). Publishing only writes data that passed the test; changing anything in Collect data turns Test and Publish back to "Needs re-run"/"Not saved".
+- Response: the "Continue to Export" button is removed.
+
+## Plan tab (2026-11-16, `docs/PLAN_TAB.md`)
+- Title "Plan" + one line of help, then two cards; log panel at the bottom like every tab.
+- **Target** card: name field (Enter = check) + **Check with SIMBAD** (runs in a worker; result line `SIMBAD: <query> = <main id> · <type> · V <mag> · <Sp>`, or "not in SIMBAD" / "could not be reached: type RA/Dec"), RA and Dec fields (`hh mm ss.s` / `±dd mm ss` or decimal degrees; errors shown under them), chip on the right: **SIMBAD** / **Manual** / No position.
+- **Reference star candidates** card: (i) explains the catalog (F. Teyssier's Reference Star Finder v3, distance only, offline); **Show N** (1–50, default 10); **Use as reference** (amber, enabled on a selected row; double-click works too). Table: Name · Distance (°) · V · B−V · Sp. type, nearest first, the chosen star marked ✓, sized to its rows. Status line names the choice.
+- Emission-line stars (an "e" code in the spectral type: Ve, Vne, Vpe, IIIe, (e) …; 73 of 1041) are never listed (Matt, 2026-11-16); element symbols such as Eu/He/Fe in Ap/Bp types do not count. 968 candidates remain.
+- **Observing plan** card: read-only monospace box, **Text | JSON**, **Copy**, **Save…**. Text = two columns (Target / V / RA / Dec, then Reference / V / RA / Dec); JSON = `{"target": {name, vmag, ra, dec}, "reference": {…} or null}`. Missing values: `-` / `null`. Not linked to Files or Response (Matt, 2026-11-16).
+- Built on first use (startup unchanged). SIMBAD tries the mirror that answered last first, 4 s per mirror.
+
+### Plan tab fixes (2026-11-17)
+- **Log:** every reference change is logged (chosen, cleared because the target changed, dropped because it is an emission star); re-choosing the same star logs nothing. The chosen star stays selected in the table. Cause of the earlier mismatch: the Log panel only auto-scrolled when already at the bottom, and a panel filled while hidden was not, so new lines landed below the four visible ones. `LogPanel.append` now always scrolls to the newest line.
+- **Flux ref column:** amber chip "! poor flux ref" for spectral types with an emission "e" or earlier than A0 (O/B), tooltip "Emission/early type: poor flux reference"; subtle green "✓ good" for A0–A3 V without "e". No filtering or reordering by this column (emission stars stay excluded from the catalog as decided earlier).
+- **Table:** fixed widths (Name 200 px), numeric headers right-aligned over their values, Flux ref stretches.
+- **Copy:** small copy buttons beside the Target RA and Dec fields; "Target RA+Dec" and "Reference RA+Dec" next to Copy/Save in the Observing plan card. Bare values only (`20 17 47.2  +38 01 59`). Copy still copies the whole block; the side-by-side text is unchanged.
+- **Source:** SIMBAD/Manual chip next to RA/Dec; "simbad" until RA/Dec is edited, then "manual"; logged with each target line and stored as `target.source` in the JSON.
+- **Layout:** page bottom margin so the Observing plan card scrolls clear of the Log; "Use as reference" is amber (primary) only while a different row is selected, plain and disabled otherwise: never more than one amber button in the view.
+
+## Acquisition tab (2026-11-17, `docs/ACQUISITION_TAB.md`)
+- Same theme as the rest of the app (no night palette). Built on first use.
+- **Watch folder** card: folder + Browse, filter, interval (1–10 s), Process existing files, **Start watching / Pause** (the one amber button), status line (subs, last file and its analysis time, queue).
+- **Sets** card: Target / Reference names with **From Plan**, **Paste** (Plan observing-plan text or JSON), **Collecting for: Target | Reference** (switched by hand only; a hint chip appears when OBJECT or exposure changes), Also save next to the images, **Save sets** (autosaved on every change to `<session>/acquisition_sets.json`).
+- Layout: left column **Sub** card above the **Stack SNR** card; right column **Recommendation** above the **Good subs** list.
+- **Sub** card, **ADU profile | Sub image**, for the sub picked in the list (else the latest of the selected set; a new sub is followed again):
+  - ADU profile: hot-pixel-filtered column maximum of the spectrum rows (blue) and the sky rows' median (sand), with a legend; dashed linearity limit, saturated columns shaded, peak marker. Zoom stays within 0 … 1.1 × 65520 ADU and columns ≥ 0.
+  - Sub image (loaded in a worker): the whole frame, straightened along the tilt (row = detector row at the centre column), with the spectrum and Sky A / Sky B rows used for that sub (same colours as Extract; drag a band to change the rows, e.g. when the auto rows picked another bright row), and its row profile with the subtracted sky level. Y zoom as in Extract: Full height / Fit to bands / ×2–×16 chips, wheel over the image or profile, and the frame strip with the amber window (bands marked). The profile always shows the same rows as the image, and its ADU axis re-scales to the rows in view (highest value at 80 % of the width). **Re-detect** with the sub image zoomed in searches only the rows in view (with the set's tilt; a window under 120 rows is widened around its centre so the skies fit), so a faint spectrum next to a brighter one can be picked; at full height, or in the ADU profile view, it searches the whole frame.
+  - Rows chip ("Target: auto, locked from sub 1"), move hint, **Re-detect** (on the sub shown), editable Row / ± rows / Sky gap / Sky width (applied 0.5 s after the last arrow click). Any rows change (fields, dragged band, Re-detect) re-analyses every sub of that set in workers, keeping the user's ticks. A reopened session reads the shown sub again for its ADU curves (they are not stored). Rows are locked **per set** (target and reference stars sit on different rows: 1067 vs 1047 on the nova night).
+- **Recommendation**: peak % of the limit, longest safe exposure (linear scaling, tooltip), Saturated state with a shorter exposure, stack SNR vs the target SNR and the subs still needed at the current and at the longest safe exposure.
+- **Good subs** list with Target (n of m) / Reference tabs: tick (= user override), Sub, Exp, Peak, SNR, Flags, OBJECT (info). Click a sub to show it in the Sub card; right-click: Move to the other set / Exclude. Copy list, Save list…
+- **Stack SNR** chart with a **Target SNR** field (default 100) in its header: measured (solid), √N from sub 1 (dotted), projection (dashed), legend, target line, n reached, transparency chip. Zoom stays at ≥ 0.
+
+## Reduce > Files suggestion (2026-11-17)
+- **Suggestion** card above the light cards: "From Acquisition: Target …, N good subs. Reference …, M good subs." + provenance chip ("sets file from 2026-08-21" / "folder scan"), missing/changed files in red (names in the tooltip), **Use suggestion** (ticks the good files, adds them if absent, unticks the set's excluded ones, fills the names; nothing automatic), **Load sets file…**, **Scan folder…** (worker with progress and Cancel; raw 2-D 16-bit light subs only; a dialog groups them by folder/OBJECT/exposure as hints, the user picks Target / Reference / Ignore). Files never writes the sets file; without one it behaves as before.

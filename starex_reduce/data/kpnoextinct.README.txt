@@ -1,0 +1,27 @@
+kpnoextinct.dat — Kitt Peak standard atmospheric extinction, wavelength (Angstrom) and k (mag per airmass).
+Source: IRAF noao/lib/onedstds/kpnoextinct.dat,
+https://raw.githubusercontent.com/iraf-community/iraf/main/noao/lib/onedstds/kpnoextinct.dat
+(downloaded 2026-11-16, unchanged). Used for the optional airmass correction in step 5 (Response).
+
+Copyright(c) 1986 Association of Universities for Research in Astronomy Inc.
+
+The IRAF software is publicly available, but is NOT in the public domain.
+The difference is that copyrights granting rights for unrestricted use and
+redistribution have been placed on all of the software to identify its authors.
+You are allowed and encouraged to take this software and use it as you wish,
+subject to the restrictions outlined below.
+
+Permission to use, copy, modify, and distribute this software and its
+documentation is hereby granted without fee, provided that the above copyright
+notice appear in all copies and that both that copyright notice and this
+permission notice appear in supporting documentation, and that references to
+the Association of Universities for Research in Astronomy Inc. (AURA),
+the National Optical Astronomy Observatories (NOAO), or the Image Reduction
+and Analysis Facility (IRAF) not be used in advertising or publicity
+pertaining to distribution of the software without specific, written prior
+permission from NOAO.  NOAO makes no representations about the suitability
+of this software for any purpose.  It is provided "as is" without express or
+implied warranty.
+
+NOAO DISCLAIMS ALL WARRANTIES WITH REGARD TO THIS SOFTWARE, INCLUDING ALL
+IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS, IN NO EVENT SHALL NOAO
