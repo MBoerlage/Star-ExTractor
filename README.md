@@ -1,6 +1,6 @@
 # Star ExTractor
 
-Star ExTractor turns the frames from a **Star'Ex LR** slit spectrograph into a calibrated, response-corrected 1D
+Star ExTractor turns the frames from a **Star'Ex LR**, **TSE**,**Alphy600** slit spectrographs into a calibrated, response-corrected 1D
 spectrum, ready to upload to the **AAVSO Spectroscopy Database (AVSpec)**. It plans the night, watches your subs
 while you capture, reduces them step by step and writes the AVSpec file. It is a Windows desktop program; you do
 not need Python.
@@ -9,7 +9,7 @@ not need Python.
 
 ## Download
 
-Get the latest installer from the **Releases** page: `https://github.com/<OWNER>/<REPO>/releases`
+Get the latest installer from the **Releases** page: `https://github.com/MBoerlage/Star-ExTractor/releases`
 (`StarExtractor-Setup-<version>.exe`). A portable zip (`StarExtractor-<version>-portable.zip`) is there too, for
 running without installing. `SHA256SUMS.txt` lists the checksums of both.
 
