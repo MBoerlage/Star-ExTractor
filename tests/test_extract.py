@@ -8,11 +8,11 @@ import pytest
 import synth
 from astropy.io import fits
 
-from starex_reduce.core import geometry as g
-from starex_reduce.core.extract import Band, Bands, auto_place, centring, extract, sky_subtracted
-from starex_reduce.core.fitsio import read_image
-from starex_reduce.core.instrument import SEED_DISPERSION
-from starex_reduce.core.jobs import Ctx
+from starextractor.core import geometry as g
+from starextractor.core.extract import Band, Bands, auto_place, centring, extract, sky_subtracted
+from starextractor.core.fitsio import read_image
+from starextractor.core.instrument import SEED_DISPERSION
+from starextractor.core.jobs import Ctx
 
 EXAMPLE = Path(__file__).resolve().parents[1] / "example_spectra" / "novasrg2026"
 

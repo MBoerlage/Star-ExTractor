@@ -39,7 +39,7 @@ with the amateur spectroscopy community – to the stars and beyond!
 
 ## Python packages
 
-Runtime dependencies of `starex-reduce` and everything they require, as installed when this file was generated
+Runtime dependencies of `starextractor` and everything they require, as installed when this file was generated
 (`pip install -e .`). Each package keeps its own licence. The Windows build leaves out the parts the app does not
 use (for example Qt WebEngine, Qt PDF and Qt Quick from the PySide6 packages; see `packaging/starex_extractor.spec`).
 
@@ -73,11 +73,11 @@ The LGPL-3.0 and GPL-3.0 texts are included with PySide6 in the build.
 
 ## Bundled data
 
-* Pickles (1998) stellar flux library (`starex_reduce/reference_spectra/`), see the credits above and
+* Pickles (1998) stellar flux library (`starextractor/reference_spectra/`), see the credits above and
   `README.HILIB` in that folder.
-* Reference-star catalogue (`starex_reduce/data/reference_stars.csv`), see the credits above.
-* AAVSO telluric line list (`starex_reduce/data/aavso_telluric_lines.csv`), from the AAVSO Spectroscopy
+* Reference-star catalogue (`starextractor/data/reference_stars.csv`), see the credits above.
+* AAVSO telluric line list (`starextractor/data/aavso_telluric_lines.csv`), from the AAVSO Spectroscopy
   Database Users Manual v1.4, appendix A.1.
-* Kitt Peak atmospheric extinction (`starex_reduce/data/kpnoextinct.dat`), from IRAF `noao/lib/onedstds`.
-* ZWO ASI585MM Pro gain/read-noise table (`starex_reduce/data/asi585mm_pro.csv`), from ZWO's published
+* Kitt Peak atmospheric extinction (`starextractor/data/kpnoextinct.dat`), from IRAF `noao/lib/onedstds`.
+* ZWO ASI585MM Pro gain/read-noise table (`starextractor/data/asi585mm_pro.csv`), from ZWO's published
   specifications.

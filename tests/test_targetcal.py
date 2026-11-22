@@ -7,10 +7,10 @@ from pathlib import Path
 import numpy as np
 import pytest
 
-from starex_reduce.core import linelists, targetcal
-from starex_reduce.core.skylines import Peak, find_sky_lines, identify
-from starex_reduce.core.targetcal import fit_target
-from starex_reduce.synth import wave_case
+from starextractor.core import linelists, targetcal
+from starextractor.core.skylines import Peak, find_sky_lines, identify
+from starextractor.core.targetcal import fit_target
+from starextractor.synth import wave_case
 
 ROOT = Path(__file__).resolve().parents[1]
 NOVA = ROOT / "example_spectra" / "novasrg2026" / "2026-11-16"
@@ -50,7 +50,7 @@ def test_catalogue_values(label: str, lam: float) -> None:
 
 
 def test_catalogue_balmer_is_the_apps_table_and_blends_are_low_weight() -> None:
-    from starex_reduce.core.wavelength import BALMER
+    from starextractor.core.wavelength import BALMER
 
     for name, lam in BALMER.items():
         assert linelists.BY_LABEL[name].lam_a == lam
@@ -84,7 +84,7 @@ def test_absent_or_ambiguous_patterns_are_not_identified() -> None:
     res = find_sky_lines(c.tgt_sky, c.sky_rows, c.ref)
     assert not res.identified and res.text().startswith(("No sky lines", "1 sky", "2 sky", "3 sky", "0"))
     # a regular comb: every offset fits equally well
-    from starex_reduce.core.linelists import Line
+    from starextractor.core.linelists import Line
 
     comb = [Line(f"L{i}", 5000.0 + 100.0 * i, linelists.SKY_AIRGLOW, "X") for i in range(6)]
     peaks = [Peak(c.ref.pixel(5000.0 + 100.0 * i) + 20, 0.1, 6, 100, 50) for i in range(6)]
@@ -144,7 +144,7 @@ def test_outliers_rejected_blend_down_weighted_and_untick_refits() -> None:
     na = next(a for a in f.anchors if a.name == "Na 5685 (HPS)")
     assert na.weight <= 0.3
     # a misidentified line: move one sky anchor by 6 px and refit through the same code path
-    from starex_reduce.core import targetcal as tc
+    from starextractor.core import targetcal as tc
 
     anchors = [a for a in f.anchors]
     anchors[0].d_px += 6.0
@@ -167,7 +167,7 @@ def test_telluric_lag_recovered_and_skipped_for_a_late_type_reference() -> None:
 
 
 def test_sign_convention_puts_a_fixed_line_at_its_rest_wavelength() -> None:
-    from starex_reduce.core.wavelength import linear_grid, resample
+    from starextractor.core.wavelength import linear_grid, resample
 
     c, _t, f = run(shift=13.5, seed=10)
     crval, cdelt, n = linear_grid(c.ref, 3900.0, 8000.0)
@@ -194,7 +194,7 @@ def test_few_or_one_sided_anchors_cannot_judge_the_shape() -> None:
 def test_real_nova_pair_sky_lines_and_pure_shift() -> None:
     from astropy.io import fits
 
-    from starex_reduce.core.wavelength import Solution
+    from starextractor.core.wavelength import Solution
 
     h0 = fits.getheader(NOVA / "Reference_W.fit")
     ref = Solution([h0["WAV_C0"], h0["WAV_C1"], h0["WAV_C2"]])

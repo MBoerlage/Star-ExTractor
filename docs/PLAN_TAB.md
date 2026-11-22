@@ -16,7 +16,7 @@ All paths relative to the SpectroTargetTool project.
 | Source | Use |
 |---|---|
 | `spectro_planner/astronomy/reference_stars.py` | Port the logic as is: load CSV, great-circle distance with numpy, sort, take n. Dataclasses `ReferenceStar`, `ReferenceStarMatch`. Remove `lru_cache` import path assumptions if they conflict; keep the function names |
-| `spectro_planner/data/reference_stars.csv` | Copy to `starex_reduce/data/reference_stars.csv`. 1041 stars, V < 6, mostly A and B main-sequence stars, columns `name,ra_deg,dec_deg,v_mag,b_v,sp_type`. Credit (as in About and the README): "A subset, with amendments, of the Reference Star Finder database by François Teyssier and Paolo Berardi (data from SIMBAD)" (v3 spreadsheet, 2024); keep it in the README |
+| `spectro_planner/data/reference_stars.csv` | Copy to `starextractor/data/reference_stars.csv`. 1041 stars, V < 6, mostly A and B main-sequence stars, columns `name,ra_deg,dec_deg,v_mag,b_v,sp_type`. Credit (as in About and the README): "A subset, with amendments, of the Reference Star Finder database by François Teyssier and Paolo Berardi (data from SIMBAD)" (v3 spreadsheet, 2024); keep it in the README |
 | `tests/test_reference_stars.py` | Port the 4 tests unchanged (adjust imports) |
 
 Do not copy anything else from that repo. Do not import from it at runtime.
@@ -26,7 +26,7 @@ Do not copy anything else from that repo. Do not import from it at runtime.
 - The original spreadsheet (`ReferenceStarFinder_V3_en.xlsm`) also has: an observing site/date/UT input, a sort-by choice (distance or hour-angle difference "D h"), an E(B-V) reddening column with limits 0.05/0.1, and a Miles-library flag. The Python port dropped these. They are NOT part of this task; see "Optional add-ons".
 
 ## Reuse what the new app already has
-- SIMBAD/Sesame lookup: use `starex_reduce/core/` code created at M1 (ported from `specinti_prep/simbad.py`, with offline fallback). Do not write a second one. If M1 is not done yet, create it once in `core/simbad.py` and have Files use it too.
+- SIMBAD/Sesame lookup: use `starextractor/core/` code created at M1 (ported from `specinti_prep/simbad.py`, with offline fallback). Do not write a second one. If M1 is not done yet, create it once in `core/simbad.py` and have Files use it too.
 - Manual RA/Dec parsing: reuse the existing coordinate parser if there is one.
 - Network rules in CLAUDE.md still hold: SIMBAD/Sesame only on a user click, never in loops. The reference catalog lookup is local and instant.
 

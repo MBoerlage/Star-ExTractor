@@ -8,18 +8,18 @@ from pathlib import Path
 from PyInstaller.utils.hooks import collect_data_files, collect_submodules, copy_metadata
 
 ROOT = Path(SPECPATH).parent  # noqa: F821 - SPECPATH is set by PyInstaller
-PKG = ROOT / "starex_reduce"
+PKG = ROOT / "starextractor"
 
 # Every bundled data file, listed explicitly (a missing data file is the classic packaging bug).
 datas = [
-    (str(PKG / "reference_spectra"), "starex_reduce/reference_spectra"),  # Pickles (1998) library
-    (str(PKG / "data"), "starex_reduce/data"),  # reference stars, telluric lines, extinction, camera table
-    (str(PKG / "resources"), "starex_reduce/resources"),  # logo SVGs, starex.ico, splash.png + splash@2x.png
-    (str(PKG / "ui" / "icons"), "starex_reduce/ui/icons"),  # theme icons
-    (str(PKG / "ui" / "about"), "starex_reduce/ui/about"),  # About splash
+    (str(PKG / "reference_spectra"), "starextractor/reference_spectra"),  # Pickles (1998) library
+    (str(PKG / "data"), "starextractor/data"),  # reference stars, telluric lines, extinction, camera table
+    (str(PKG / "resources"), "starextractor/resources"),  # logo SVGs, starex.ico, splash.png + splash@2x.png
+    (str(PKG / "ui" / "icons"), "starextractor/ui/icons"),  # theme icons
+    (str(PKG / "ui" / "about"), "starextractor/ui/about"),  # About splash
 ]
 datas += collect_data_files("astropy_iers_data")  # astropy never needs to download at first run
-datas += copy_metadata("starex-reduce")  # the version comes from pyproject.toml through the metadata
+datas += copy_metadata("starextractor")  # the version comes from pyproject.toml through the metadata
 
 # Qt and Python modules the app never uses: keeps the folder small.
 excludes = [
@@ -45,7 +45,7 @@ a = Analysis(  # noqa: F821
     pathex=[str(ROOT)],
     datas=datas,
     # the screens are imported by name when first opened (main_window.LAZY_SCREENS): collect them all
-    hiddenimports=["PySide6.QtSvg", "astropy_iers_data"] + collect_submodules("starex_reduce"),
+    hiddenimports=["PySide6.QtSvg", "astropy_iers_data"] + collect_submodules("starextractor"),
     hookspath=[str(ROOT / "packaging" / "hooks")],
     excludes=excludes,
     noarchive=False,
@@ -53,7 +53,7 @@ a = Analysis(  # noqa: F821
 pyz = PYZ(a.pure)  # noqa: F821
 
 # Stage 1: the PyInstaller bootloader splash, shown before Python starts. The same 1x image as the Qt splash
-# (stage 2, starex_reduce/ui/splash.py), on the same screen and at the same size (the exe is per-monitor DPI aware
+# (stage 2, starextractor/ui/splash.py), on the same screen and at the same size (the exe is per-monitor DPI aware
 # through its manifest), so the hand-off is seamless at 100-149 % display scaling (from 150 % the Qt splash uses
 # the 2x image and is drawn twice as large in device pixels as stage 1).
 # app.py closes it (pyi_splash.close) once the Qt splash is on screen.

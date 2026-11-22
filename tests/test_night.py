@@ -3,7 +3,7 @@ from __future__ import annotations
 
 from datetime import datetime, timedelta
 
-from starex_reduce.core.session import night_of
+from starextractor.core.session import night_of
 
 
 def test_night_runs_noon_to_noon_local() -> None:

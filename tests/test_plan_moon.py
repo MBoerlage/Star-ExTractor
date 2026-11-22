@@ -12,10 +12,10 @@ from PySide6.QtGui import QColor, QImage
 from PySide6.QtWidgets import QApplication
 from pytestqt.qtbot import QtBot
 
-from starex_reduce.core import sky
-from starex_reduce.ui import theme
-from starex_reduce.ui.widgets.alt_chart import SERIES, AltitudeChart
-from starex_reduce.ui.widgets.sky_polar import MOON_BELOW, SkyPolar, moon_pen
+from starextractor.core import sky
+from starextractor.ui import theme
+from starextractor.ui.widgets.alt_chart import SERIES, AltitudeChart
+from starextractor.ui.widgets.sky_polar import MOON_BELOW, SkyPolar, moon_pen
 
 LAT, LON = 30.6714, -104.0225  # McDonald Observatory, a public site
 TZ = timezone(timedelta(hours=-6))

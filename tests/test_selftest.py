@@ -5,12 +5,12 @@ from pathlib import Path
 
 import pytest
 
-from starex_reduce import __version__
-from starex_reduce.app import main
+from starextractor import __version__
+from starextractor.app import main
 
 
 def test_selftest_passes(monkeypatch: pytest.MonkeyPatch, capsys: pytest.CaptureFixture[str]) -> None:
-    monkeypatch.setenv("STAREX_REDUCE_HOME", "unused")  # the self-test sets its own; restored after the test
+    monkeypatch.setenv("STAREXTRACTOR_HOME", "unused")  # the self-test sets its own; restored after the test
     assert main(["--selftest"]) == 0
     out = capsys.readouterr().out
     assert "self-test PASSED" in out and "FAIL" not in out

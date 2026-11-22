@@ -6,10 +6,10 @@ from pathlib import Path
 import pytest
 from pytestqt.qtbot import QtBot
 
-from starex_reduce.core import simbad
-from starex_reduce.core.session import Session
-from starex_reduce.ui import theme
-from starex_reduce.ui.main_window import MainWindow
+from starextractor.core import simbad
+from starextractor.core.session import Session
+from starextractor.ui import theme
+from starextractor.ui.main_window import MainWindow
 
 
 @pytest.fixture
@@ -87,7 +87,7 @@ def test_simbad_found_fills_position(win: MainWindow, qtbot: QtBot, monkeypatch:
 def test_reference_choice_goes_into_the_observing_plan_only(win: MainWindow, qtbot: QtBot, tmp_path: Path) -> None:
     import json
 
-    from starex_reduce.core.response_stage import params_of
+    from starextractor.core.response_stage import params_of
 
     plan = win.ensure_plan()
     plan.name.setText("V8055 Sgr")
@@ -183,7 +183,7 @@ def test_every_reference_change_is_logged_and_visible(win: MainWindow, qtbot: Qt
 
 
 def test_log_panel_filled_while_hidden_still_follows(qtbot: QtBot) -> None:
-    from starex_reduce.ui.log_panel import LogPanel
+    from starextractor.ui.log_panel import LogPanel
 
     panel = LogPanel()
     qtbot.addWidget(panel)
@@ -196,8 +196,8 @@ def test_log_panel_filled_while_hidden_still_follows(qtbot: QtBot) -> None:
 
 # ---- 2: flux-reference flags, no filtering or reordering ------------------------------------------------
 def test_flux_reference_flags(win: MainWindow, qtbot: QtBot, monkeypatch: pytest.MonkeyPatch) -> None:
-    from starex_reduce.core.plan import FLUX_WARN_TIP, flux_flag
-    from starex_reduce.core.reference_stars import find_reference_stars
+    from starextractor.core.plan import FLUX_WARN_TIP, flux_flag
+    from starextractor.core.reference_stars import find_reference_stars
 
     for sp, flag in (("B2Ve", "warn"), ("B5V", "warn"), ("O9V", "warn"), ("A1Vne", "warn"), ("A0V", "good"),
                      ("A3V", "good"), ("A0Vn", "good"), ("A4V", None), ("A2IV", None), ("F0V", None)):
@@ -219,7 +219,7 @@ def test_flux_reference_flags(win: MainWindow, qtbot: QtBot, monkeypatch: pytest
 
 # ---- 4: bare coordinate copies -------------------------------------------------------------------------
 def test_copy_bare_coordinates(win: MainWindow, qtbot: QtBot, monkeypatch: pytest.MonkeyPatch) -> None:
-    from starex_reduce.core.coords import format_dec, format_ra
+    from starextractor.core.coords import format_dec, format_ra
 
     plan = _simbad_pcyg(win, qtbot, monkeypatch)
     assert not plan.copy_ref_btn.isEnabled() and plan.copy_coords("reference") is None

@@ -1,4 +1,4 @@
-# StarEx Reduce – specification
+# Star ExTractor – specification
 
 ## 1. Goal
 Take lights of a science target and a reference star (usually an A0V star), plus calibration frames, and produce a wavelength-calibrated, response-corrected, normalised 1D spectrum (intensity vs Å or nm) with a complete FITS header, ready for AAVSO AVSpec and ARAS/BeSS. One fixed instrument (Star'Ex LR, ASI585MM Pro, 2.9 µm pixels). Quick: a typical night's data should go from "files picked" to "spectrum on screen" in well under a minute of compute.
@@ -89,7 +89,7 @@ Master library: the Masters location (`<data root>\Masters\`, Settings › Data 
 - **Target calibration (2026-11-19, `docs/WAVELENGTH.md`):** the target's solution is the reference solution plus a measured correction D(x) = s + k(x − x0) + q(x − x0)² (λ_target(x) = λ_ref(x − D(x))), from the target's sky emission lines (Sky A / Sky B rows of `work/Target_G.fit`), its telluric bands matched against the reference star, interstellar lines and stellar lines with one common velocity. Auto = shift only unless a scale is clearly better and within limits; modes Shift only, Shift and scale, Manual (the old target adjustment). The manual shift is applied after the fit. The card shows the anchors (Use ticks), residuals, the sky spectrum, the target − reference difference with a verdict, and the reference's own sky-line check. Without the frames or anchors the old behaviour applies and the card says so. Logbook metrics and three HISTORY lines; no SX* keywords.
 
 ### 5.5 Response (step 5)
-- Library: Matt's local copy of the Pickles (1998) flux library (HILIB/UVILIB) in `starex_reduce/reference_spectra/` (see DATA.md): 108 templates (after Matt removed the odd metal-weak/rich ones) as 2-column text `wavelength Å, flux`, 3000–10000 Å, 5 Å steps, normalised to 1 at 5556 Å, about **10 Å resolution**. Pick the template from the reference star's SIMBAD spectral type (e.g. `A0Va` → `a0v.dat`; map type + luminosity class to the file name; fall back to the nearest type and tell the user). Let the user override from a dropdown ("Pickles · A0V"). Parse files with numpy; do not bundle anything else.
+- Library: Matt's local copy of the Pickles (1998) flux library (HILIB/UVILIB) in `starextractor/reference_spectra/` (see DATA.md): 108 templates (after Matt removed the odd metal-weak/rich ones) as 2-column text `wavelength Å, flux`, 3000–10000 Å, 5 Å steps, normalised to 1 at 5556 Å, about **10 Å resolution**. Pick the template from the reference star's SIMBAD spectral type (e.g. `A0Va` → `a0v.dat`; map type + luminosity class to the file name; fall back to the nearest type and tell the user). Let the user override from a dropdown ("Pickles · A0V"). Parse files with numpy; do not bundle anything else.
 - Build: `R(λ) = observed_ref(λ) / library(λ)`. **Resolution mismatch:** the library is about 10 Å, coarser than our spectra (R≈820 at Hβ is about 6 Å FWHM). Do not try to sharpen the library: smooth the observed reference to the library resolution (Gaussian, σ from FWHM ≈ 10 Å) before dividing, and rescale; Balmer cores stay masked anyway. Masks: Balmer lines and telluric bands (from `data/aavso_telluric_lines.csv`: O₂ a 6278, H₂O near Hα 6532–6587, O₂ B 6867–6924, H₂O 7168 Å, and O₂ A 7594–7697 Å if the crop includes it). Smooth masked response (Savitzky–Golay or smoothing spline; "Smoothing" low / medium / high) → the pink "smoothed response" curve; this is what is applied.
 - Airmass correction (optional, default on): `corrected = obs_target / R · 10^(0.4·k(λ)·(X_t − X_r))` with a standard extinction table k(λ) (e.g. Kitt Peak/Palomar-type; document the source) and X from header AIRMASS, else computed from site, time and coordinates.
 - Normalise at a window (default 5500–5600 Å, divide by mean), crop (default **3900–7700 Å**, so the O₂ A telluric band at 7594–7697 Å stays in).
@@ -138,7 +138,7 @@ Visible in the observing plan. Positions from `core/sky.py` (numpy, offline; acc
 * **Help me**: the workflow guide (`resources/help.md`) from the top row or F1.
 
 ## 7a. Start-up (2026-11-20)
-- **Order:** `starex_reduce/app.py` imports only `sys`, `os`, `time` and PySide6 at top level (and the package
+- **Order:** `starextractor/app.py` imports only `sys`, `os`, `time` and PySide6 at top level (and the package
   `__init__` is cheap: `__version__` is read on first use). The GUI path creates QApplication, shows the splash
   (`ui/splash.py`, stdlib + PySide6 only) and paints it, and only then imports the app modules and builds the window.
   A test checks that numpy, scipy, astropy, pyqtgraph and `ui.main_window` are not loaded when the splash is up.

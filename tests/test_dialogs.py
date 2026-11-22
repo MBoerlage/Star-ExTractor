@@ -26,7 +26,7 @@ from PySide6.QtWidgets import (
 )
 from pytestqt.qtbot import QtBot
 
-from starex_reduce.ui import dialogs, theme
+from starextractor.ui import dialogs, theme
 
 PALETTES = ("default", "night", "red")
 
@@ -119,7 +119,8 @@ def shown(dlg: QWidget, qtbot: QtBot, size=(820, 520)) -> QWidget:
 def dir_dialog(folder: Path, qtbot: QtBot) -> QFileDialog:
     dlg = shown(dialogs.file_dialog(None, "Target folder to watch", str(folder), mode="directory"), qtbot)
     view = dlg.findChild(QTreeView, "treeView")
-    qtbot.waitUntil(lambda: view.model().rowCount(view.rootIndex()) >= 3, timeout=5000)
+    # QFileSystemModel fills in the background, which is slow on a cold disk cache
+    qtbot.waitUntil(lambda: view.model().rowCount(view.rootIndex()) >= 3, timeout=20000)
     no_caret(dlg)
     qtbot.wait(50)
     return dlg
@@ -291,14 +292,14 @@ def test_every_dialog_gets_the_dark_title_bar(palette: str, monkeypatch: pytest.
 
 def test_no_native_dialogs_and_no_static_file_dialogs() -> None:
     assert QApplication.instance().testAttribute(Qt.ApplicationAttribute.AA_DontUseNativeDialogs)
-    root = Path(__file__).resolve().parents[1] / "starex_reduce"
+    root = Path(__file__).resolve().parents[1] / "starextractor"
     static = re.compile(r"QFileDialog\.get(ExistingDirectory|OpenFileNames?|SaveFileName)\(")
     found = [f.name for f in root.rglob("*.py") if static.search(f.read_text(encoding="utf-8"))]
     assert found == []  # every file and folder picker goes through ui/dialogs.py
 
 
 def test_dialog_styling_uses_tokens_only() -> None:
-    root = Path(__file__).resolve().parents[1] / "starex_reduce" / "ui"
+    root = Path(__file__).resolve().parents[1] / "starextractor" / "ui"
     literal = re.compile(r"#[0-9A-Fa-f]{6}\b|QColor\(\s*[\d\"]")
     for f in ("dialogs.py", "screens/plan_pairs.py"):
         assert not [ln for ln in (root / f).read_text(encoding="utf-8").splitlines() if literal.search(ln)], f

@@ -7,9 +7,9 @@ from pathlib import Path
 import numpy as np
 from pytestqt.qtbot import QtBot
 
-from starex_reduce.core.session import Session
-from starex_reduce.ui import brand
-from starex_reduce.ui.main_window import MainWindow
+from starextractor.core.session import Session
+from starextractor.ui import brand
+from starextractor.ui.main_window import MainWindow
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1] / "tools"))
 

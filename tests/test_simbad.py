@@ -5,8 +5,8 @@ import os
 
 import pytest
 
-from starex_reduce.core import simbad
-from starex_reduce.core.simbad import simbad_job
+from starextractor.core import simbad
+from starextractor.core.simbad import simbad_job
 
 SHELIAK_XML = """<?xml version="1.0" encoding="UTF-8"?>
 <Sesame><Target option="S"><name>Sheliak</name>

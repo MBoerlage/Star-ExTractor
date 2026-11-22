@@ -10,10 +10,10 @@ import pytest
 from pytestqt.qtbot import QtBot
 from test_export_screen import _fill, save_tile, win  # noqa: F401 - fixture
 
-from starex_reduce.core.fitsio import write_float32
-from starex_reduce.ui import theme
-from starex_reduce.ui.main_window import MainWindow
-from starex_reduce.ui.screens import export_publish as ep
+from starextractor.core.fitsio import write_float32
+from starextractor.ui import theme
+from starextractor.ui.main_window import MainWindow
+from starextractor.ui.screens import export_publish as ep
 
 REF = Path(__file__).parent / "data" / "export_ref"  # written by the writers before the Publish redesign
 

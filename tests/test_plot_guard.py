@@ -8,7 +8,7 @@ from PySide6.QtGui import QWheelEvent
 from PySide6.QtWidgets import QApplication
 from pytestqt.qtbot import QtBot
 
-from starex_reduce.ui.widgets.plot_guard import pg, span_ok
+from starextractor.ui.widgets.plot_guard import pg, span_ok
 
 
 def _wheel(pw: pg.PlotWidget, item, delta: int, n: int) -> None:
@@ -46,9 +46,9 @@ def test_endless_wheel_on_plot_and_axes_stays_finite(qtbot: QtBot) -> None:
 
 def test_acquisition_empty_plot_has_a_sane_range(qtbot: QtBot, tmp_path) -> None:
     """The latest-sub plot used to auto-range itself to ~1e-91 (label TextItem in the bounds)."""
-    from starex_reduce.core.session import Session
-    from starex_reduce.ui import theme
-    from starex_reduce.ui.main_window import MainWindow
+    from starextractor.core.session import Session
+    from starextractor.ui import theme
+    from starextractor.ui.main_window import MainWindow
 
     theme.apply(QApplication.instance())
     w = MainWindow(session=Session.create(tmp_path / "s"))

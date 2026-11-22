@@ -9,9 +9,9 @@ import numpy as np
 import pytest
 from astropy.io import fits
 
-from starex_reduce.core import export as ex
-from starex_reduce.core import vsx
-from starex_reduce.core.fitsio import write_float32
+from starextractor.core import export as ex
+from starextractor.core import vsx
+from starextractor.core.fitsio import write_float32
 
 EXAMPLE = Path(__file__).resolve().parents[1] / "example_spectra" / "novasrg2026"
 # Keys AVSpec reads (AAVSO manual v1.4 §3), with the aliases it accepts

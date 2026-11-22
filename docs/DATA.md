@@ -28,7 +28,7 @@ Real frames live one folder up, in `..\projects\` (not part of the repository).
 - No neon/lamp frame, no flats, no Hα-emission science target. Tests for those use synthetic frames.
 - No known-good reduced spectrum to compare against. Matt can reduce the same data in SpecINTI/BASS and supply a comparison spectrum later (OPEN item in BUILD_PLAN).
 
-## Reference (library) spectra: `starex_reduce\reference_spectra\`
+## Reference (library) spectra: `starextractor\reference_spectra\`
 - Supplied by Matt: Pickles (1998, PASP 110, 863) templates from the HILIB/UVILIB set plus `README.HILIB`, with the metal-weak/metal-rich `w…` and `r…` variants removed (the folder now holds only the standard `<type><class>.dat` files). Same set ISIS/BASS users know.
 - Format: plain text, two columns `wavelength(Å)  flux`, 3000–10000 Å in 5 Å steps (1401 lines), flux normalised to 1.0 at 5556 Å. Resolution about **10 Å**, coarser than our data (see SPEC §5.5).
 - File names: `<type><class>.dat`, e.g. `a0v`, `a0iii`, `b8v`, `g2v`, `k5iii`, `m2.5v`. Parse whatever `*.dat` files are present; never assume a particular file exists (fall back to the nearest type).

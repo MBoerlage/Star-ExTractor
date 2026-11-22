@@ -5,9 +5,9 @@ from pathlib import Path
 
 import numpy as np
 
-from starex_reduce.core import identity as idn
-from starex_reduce.core.fitsio import write_float32
-from starex_reduce.core.session import Session
+from starextractor.core import identity as idn
+from starextractor.core.fitsio import write_float32
+from starextractor.core.session import Session
 
 
 def _session(tmp_path: Path) -> Session:
@@ -51,8 +51,8 @@ def test_checks_list_the_inconsistencies(tmp_path: Path) -> None:
 
 
 def test_response_uses_the_plan_type(tmp_path: Path) -> None:
-    from starex_reduce.core.instrument import InstrumentProfile
-    from starex_reduce.core.response_stage import params_of, template_for
+    from starextractor.core.instrument import InstrumentProfile
+    from starextractor.core.response_stage import params_of, template_for
 
     s = _session(tmp_path)
     s.inputs["reference"]["name"] = "HD 4222"

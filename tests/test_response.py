@@ -8,8 +8,8 @@ from pathlib import Path
 import numpy as np
 import pytest
 
-from starex_reduce.core import airmass as am
-from starex_reduce.core import response as r
+from starextractor.core import airmass as am
+from starextractor.core import response as r
 
 EXAMPLE = Path(__file__).resolve().parents[1] / "example_spectra" / "novasrg2026"
 
@@ -149,11 +149,11 @@ def _calibrated_profile(folder: str) -> np.ndarray:
     """The app's own chain on the real frames: masters → Match-pedestal stack → geometry → extraction."""
     import tempfile
 
-    from starex_reduce.core import geometry as g
-    from starex_reduce.core.extract import auto_place, extract
-    from starex_reduce.core.frames import BIAS, DARK, scan
-    from starex_reduce.core.jobs import Ctx
-    from starex_reduce.core.masters import (
+    from starextractor.core import geometry as g
+    from starextractor.core.extract import auto_place, extract
+    from starextractor.core.frames import BIAS, DARK, scan
+    from starextractor.core.jobs import Ctx
+    from starextractor.core.masters import (
         LightSettings,
         MasterLibrary,
         build_master,
@@ -161,7 +161,7 @@ def _calibrated_profile(folder: str) -> np.ndarray:
         group_for_masters,
         pick_calibration,
     )
-    from starex_reduce.core.stack import StackParams, stack
+    from starextractor.core.stack import StackParams, stack
 
     if "lib" not in _LIB:
         lib = MasterLibrary(Path(tempfile.mkdtemp()) / "masters")
@@ -179,8 +179,8 @@ def _calibrated_profile(folder: str) -> np.ndarray:
 @pytest.mark.realdata
 @pytest.mark.skipif(not EXAMPLE.exists(), reason="example_spectra not present")
 def test_real_response_matches_bass_and_flattens_the_reference() -> None:
-    from starex_reduce.core import wavelength as w
-    from starex_reduce.core.instrument import SEED_DISPERSION
+    from starextractor.core import wavelength as w
+    from starextractor.core.instrument import SEED_DISPERSION
 
     ref_px, nova_px = _calibrated_profile("hd163955"), _calibrated_profile("SgrNov32026")
     cal = w.calibrate(ref_px, w.Solution(list(SEED_DISPERSION["coeffs_nm"])), "free")
@@ -195,7 +195,7 @@ def test_real_response_matches_bass_and_flattens_the_reference() -> None:
 
 
 def _check_real_response(lam: np.ndarray, ref: np.ndarray, nova: np.ndarray, res: r.ResponseResult) -> None:
-    from starex_reduce.core import wavelength as w
+    from starextractor.core import wavelength as w
 
     bass =np.loadtxt(EXAMPLE / "InstrumentResponse_from_HD163955.dat")
     # peak near 6200 Å: the top is flat (0.999 at 6200, 0.998 at 6400), so check BASS's peak position

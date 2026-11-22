@@ -11,14 +11,14 @@ from PySide6.QtGui import QImage
 from PySide6.QtWidgets import QApplication
 from pytestqt.qtbot import QtBot
 
-from starex_reduce.core import plan as pl
-from starex_reduce.core import planned_pairs as pp
-from starex_reduce.core import sky
-from starex_reduce.core.session import Session
-from starex_reduce.core.settings import Settings
-from starex_reduce.ui import theme
-from starex_reduce.ui.main_window import MainWindow
-from starex_reduce.ui.screens.plan_pairs import EMPTY, IN_ACQ, PICK_REF
+from starextractor.core import plan as pl
+from starextractor.core import planned_pairs as pp
+from starextractor.core import sky
+from starextractor.core.session import Session
+from starextractor.core.settings import Settings
+from starextractor.ui import theme
+from starextractor.ui.main_window import MainWindow
+from starextractor.ui.screens.plan_pairs import EMPTY, IN_ACQ, PICK_REF
 
 VEGA = ("Vega", 279.2347, 38.7837)
 DENEB = ("Deneb", 310.3580, 45.2803)
@@ -223,7 +223,7 @@ def test_open_plan_asks_replace_or_merge(win: MainWindow, tmp_path: Path, monkey
 # 4. loading a pair into Acquisition ---------------------------------------------------------------------------------
 @pytest.fixture
 def subs(tmp_path: Path):
-    from starex_reduce.synth import write_example
+    from starextractor.synth import write_example
 
     return write_example(tmp_path / "night")
 
@@ -338,7 +338,7 @@ def _rgb(w) -> np.ndarray:
 
 @pytest.mark.parametrize("palette", ["night", "red"])
 def test_new_card_and_strip_in_the_night_palettes(win: MainWindow, qtbot: QtBot, palette: str) -> None:
-    from starex_reduce.ui import retheme
+    from starextractor.ui import retheme
 
     _add(win, VEGA)
     _add(win, DENEB, None)

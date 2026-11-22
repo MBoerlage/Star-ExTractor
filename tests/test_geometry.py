@@ -8,10 +8,10 @@ import numpy as np
 import pytest
 import synth
 
-from starex_reduce.core import geometry as g
-from starex_reduce.core.fitsio import read_image
-from starex_reduce.core.instrument import SEED_DISPERSION, InstrumentProfile
-from starex_reduce.core.jobs import Ctx
+from starextractor.core import geometry as g
+from starextractor.core.fitsio import read_image
+from starextractor.core.instrument import SEED_DISPERSION, InstrumentProfile
+from starextractor.core.jobs import Ctx
 
 EXAMPLE = Path(__file__).resolve().parents[1] / "example_spectra" / "novasrg2026"
 

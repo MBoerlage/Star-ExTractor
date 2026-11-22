@@ -8,8 +8,8 @@ import numpy as np
 import pytest
 from astropy.io import fits
 
-from starex_reduce.core import camera, subs
-from starex_reduce.core.fitsio import read_image, write_float32
+from starextractor.core import camera, subs
+from starextractor.core.fitsio import read_image, write_float32
 
 ROOT = Path(__file__).resolve().parents[1] / "example_spectra" / "novasrg2026"
 NOVA = sorted((ROOT / "SgrNov32026").glob("*.fits"))

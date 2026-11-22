@@ -16,14 +16,14 @@ from PySide6.QtCore import QDate, QTime
 from PySide6.QtGui import QImage
 from pytestqt.qtbot import QtBot
 
-from starex_reduce.core import location as lc
-from starex_reduce.core import plan as pl
-from starex_reduce.core import sky
-from starex_reduce.core.session import Session
-from starex_reduce.ui import theme
-from starex_reduce.ui.main_window import MainWindow
-from starex_reduce.ui.screens import plan_conditions as pcm
-from starex_reduce.ui.widgets.alt_chart import SERIES, ChartLegend
+from starextractor.core import location as lc
+from starextractor.core import plan as pl
+from starextractor.core import sky
+from starextractor.core.session import Session
+from starextractor.ui import theme
+from starextractor.ui.main_window import MainWindow
+from starextractor.ui.screens import plan_conditions as pcm
+from starextractor.ui.widgets.alt_chart import SERIES, ChartLegend
 
 VEGA = ("Vega", 279.2347, 38.7837)
 POLARIS = ("Polaris", 37.9546, 89.2641)
@@ -96,7 +96,7 @@ def test_run_all_is_hidden_with_its_shortcuts(win: MainWindow, qtbot: QtBot) -> 
 
 
 def test_run_all_flag_from_settings(qtbot: QtBot, tmp_path: Path) -> None:
-    from starex_reduce.core.settings import Settings
+    from starextractor.core.settings import Settings
 
     s = Settings()
     s["ui"] = {"palette": "default", "show_run_all": True}
@@ -268,7 +268,7 @@ def test_location_never_in_data_files_after_a_full_synthetic_run(tmp_path: Path,
                                                                  capsys: pytest.CaptureFixture) -> None:
     """The self-test reduces the synthetic night end to end (masters, stacks, every step, an AVSpec file) with a
     planning location set in its settings: no data file it writes contains it."""
-    from starex_reduce import selftest
+    from starextractor import selftest
 
     work = tmp_path / "work"
     (work / "settings").mkdir(parents=True)
@@ -414,7 +414,7 @@ def _rgb(w) -> np.ndarray:
 
 @pytest.mark.parametrize("palette", ["night", "red"])
 def test_dark_room_palettes_have_no_green_or_blue(win: MainWindow, qtbot: QtBot, palette: str) -> None:
-    from starex_reduce.ui import retheme
+    from starextractor.ui import retheme
 
     _site(win)
     card = _card(win, qtbot)
@@ -441,7 +441,7 @@ def test_series_differ_by_line_style_and_match_the_legend() -> None:
 def test_new_widgets_use_tokens_only() -> None:
     import re
 
-    root = Path(__file__).resolve().parents[1] / "starex_reduce" / "ui"
+    root = Path(__file__).resolve().parents[1] / "starextractor" / "ui"
     literal = re.compile(r"#[0-9A-Fa-f]{6}\b|QColor\(\s*[\d\"]|mk(Brush|Pen|Color)\(\s*\d")
     for f in ("widgets/sky_polar.py", "widgets/alt_chart.py", "screens/plan_conditions.py"):
         assert not [ln for ln in (root / f).read_text(encoding="utf-8").splitlines() if literal.search(ln)], f

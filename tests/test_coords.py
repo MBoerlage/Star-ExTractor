@@ -3,7 +3,7 @@ from __future__ import annotations
 
 import pytest
 
-from starex_reduce.core.coords import parse_coords
+from starextractor.core.coords import parse_coords
 
 
 def test_parse_coords_sexagesimal_and_decimal() -> None:

@@ -15,7 +15,7 @@ from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 
-from starex_reduce.ui.theme import PALETTES, SPEC_TOKENS
+from starextractor.ui.theme import PALETTES, SPEC_TOKENS
 
 TEXT, LARGE, STATES = 4.5, 3.0, 1.5
 # (foreground, background, threshold, what)

@@ -19,16 +19,16 @@ from PySide6.QtGui import QImage
 from PySide6.QtWidgets import QApplication
 from pytestqt.qtbot import QtBot
 
-from starex_reduce.core.session import Session
-from starex_reduce.ui import theme
-from starex_reduce.ui.main_window import MainWindow
+from starextractor.core.session import Session
+from starextractor.ui import theme
+from starextractor.ui.main_window import MainWindow
 
 ROOT = Path(__file__).resolve().parents[1]
 TOOL = ROOT / "tools" / "plan_layout_check.py"
-LAYOUT_CODE = ["starex_reduce/ui/screens/plan.py", "starex_reduce/ui/screens/plan_conditions.py",
-               "starex_reduce/ui/screens/plan_pairs.py", "starex_reduce/ui/widgets/flow.py",
-               "starex_reduce/ui/widgets/table_cols.py", "starex_reduce/ui/widgets/sky_polar.py",
-               "starex_reduce/ui/widgets/alt_chart.py"]
+LAYOUT_CODE = ["starextractor/ui/screens/plan.py", "starextractor/ui/screens/plan_conditions.py",
+               "starextractor/ui/screens/plan_pairs.py", "starextractor/ui/widgets/flow.py",
+               "starextractor/ui/widgets/table_cols.py", "starextractor/ui/widgets/sky_polar.py",
+               "starextractor/ui/widgets/alt_chart.py"]
 _cache: dict[tuple, dict] = {}
 
 
@@ -163,8 +163,8 @@ def win(qtbot: QtBot, tmp_path: Path) -> MainWindow:
 
 @pytest.mark.parametrize("palette", ["night", "red"])
 def test_no_green_or_blue_in_the_night_palettes(win: MainWindow, qtbot: QtBot, palette: str) -> None:
-    from starex_reduce.core import plan as pl
-    from starex_reduce.ui import retheme
+    from starextractor.core import plan as pl
+    from starextractor.ui import retheme
 
     page = win.ensure_plan()
     for k, (name, ra, dec) in enumerate((("bet Cas", 2.2945, 59.1498), ("V1405 Cas", 351.1592, 61.1525),

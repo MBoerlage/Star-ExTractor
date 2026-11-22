@@ -9,8 +9,8 @@ from pathlib import Path
 import pytest
 from pytestqt.qtbot import QtBot
 
-from starex_reduce.core import acq_sets
-from starex_reduce.core.subs import SubRecord, refresh_flags
+from starextractor.core import acq_sets
+from starextractor.core.subs import SubRecord, refresh_flags
 
 
 def _rec(path: Path, role: str, snr: float = 60.0, included: bool = True, flags: list[str] | None = None,
@@ -40,7 +40,7 @@ def test_round_trip_and_relative_paths(tmp_path: Path, night: dict) -> None:
     recs[2].included, recs[2].flags = False, ["SNR low"]
     doc = acq_sets.make_sets(recs, {"target": "V8055 Sgr", "reference": "HD 163955"},
                              {"target": "plan", "reference": "typed"})
-    from starex_reduce.core.session import night_of
+    from starextractor.core.session import night_of
 
     # 03:42 UTC is the evening of the 20th in Texas: the night is local noon to noon, as the session folders
     assert doc["version"] == 1 and doc["night"] == night_of("2026-08-21T03:42:58")
@@ -102,9 +102,9 @@ def test_acquisition_tab_autosaves_the_sets(qtbot: QtBot, tmp_path: Path) -> Non
         pytest.skip("example_spectra not present")
     from PySide6.QtWidgets import QApplication
 
-    from starex_reduce.core.session import Session
-    from starex_reduce.ui import theme
-    from starex_reduce.ui.main_window import MainWindow
+    from starextractor.core.session import Session
+    from starextractor.ui import theme
+    from starextractor.ui.main_window import MainWindow
 
     theme.apply(QApplication.instance())
     w = MainWindow(session=Session.create(tmp_path / "sess"))

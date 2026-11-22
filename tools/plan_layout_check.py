@@ -21,7 +21,7 @@ STARS = [("bet Cas", 2.2945, 59.1498), ("V1405 Cas", 351.1592, 61.1525), ("P Cyg
 
 def setup_env() -> Path:
     home = Path(tempfile.mkdtemp(prefix="starex_layout_"))
-    os.environ["STAREX_REDUCE_HOME"] = str(home)
+    os.environ["STAREXTRACTOR_HOME"] = str(home)
     os.environ.setdefault("QT_QPA_PLATFORM", "offscreen")
     os.environ["QT_ENABLE_HIGHDPI_SCALING"] = "0"
     if sys.platform == "win32":
@@ -46,7 +46,7 @@ def spin(app, n: int = 6) -> None:
 
 
 def add_pairs(win, page, n: int) -> None:
-    from starex_reduce.core import plan as pl
+    from starextractor.core import plan as pl
 
     for k in range(n):
         name, ra, dec = STARS[k % len(STARS)]
@@ -64,7 +64,7 @@ def measure(win, page, app) -> dict:
     from PySide6.QtGui import QFont, QFontMetrics
     from PySide6.QtWidgets import QAbstractButton, QLabel, QWidget
 
-    from starex_reduce.ui.widgets.sky_polar import LEGEND_H
+    from starextractor.ui.widgets.sky_polar import LEGEND_H
 
     def rect(w) -> list[int]:
         tl = w.mapTo(page.scroll.widget(), w.rect().topLeft())
@@ -187,9 +187,9 @@ def main() -> int:
     from PySide6.QtWidgets import QApplication
 
     app = QApplication([])
-    from starex_reduce.core.session import Session
-    from starex_reduce.ui import theme
-    from starex_reduce.ui.main_window import MainWindow
+    from starextractor.core.session import Session
+    from starextractor.ui import theme
+    from starextractor.ui.main_window import MainWindow
 
     theme.apply(app, a.palette)
     win = MainWindow(session=Session.create(home / "pair"))

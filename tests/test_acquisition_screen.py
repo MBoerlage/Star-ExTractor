@@ -8,10 +8,10 @@ from pathlib import Path
 import pytest
 from pytestqt.qtbot import QtBot
 
-from starex_reduce.core import subs as sb
-from starex_reduce.core.session import Session
-from starex_reduce.ui import theme
-from starex_reduce.ui.main_window import MainWindow
+from starextractor.core import subs as sb
+from starextractor.core.session import Session
+from starextractor.ui import theme
+from starextractor.ui.main_window import MainWindow
 
 ROOT = Path(__file__).resolve().parents[1] / "example_spectra" / "novasrg2026"
 NOVA = sorted((ROOT / "SgrNov32026").glob("*.fits"))
@@ -204,7 +204,7 @@ def test_dragging_a_band_reanalyses(win: MainWindow, qtbot: QtBot) -> None:
     a.view_mode.set_index(1)
     qtbot.waitUntil(lambda: a._shown_view is not None, timeout=10000)
     b = a.band_overlay.bands()
-    from starex_reduce.core.extract import Band, Bands
+    from starextractor.core.extract import Band, Bands
 
     a.band_overlay.moved.emit(Bands(b.spectrum, Band(b.sky_a.top - 10, b.sky_a.bottom - 10), b.sky_b))
     qtbot.waitUntil(lambda: not a.queue and not a.busy, timeout=20000)

@@ -13,19 +13,19 @@ import pytest
 from astropy.io import fits
 from pytestqt.qtbot import QtBot
 
-from starex_reduce.core import datalocs as dl
-from starex_reduce.core import logbook
-from starex_reduce.core import naming as nm
-from starex_reduce.core import pair as pr
-from starex_reduce.core.cache import file_sha256
-from starex_reduce.core.files_stage import spec_from, stack_job
-from starex_reduce.core.fitsio import read_header, write_float32
-from starex_reduce.core.frames import BIAS, DARK, LIGHT, load_frame, scan
-from starex_reduce.core.jobs import Ctx
-from starex_reduce.core.masters import MasterLibrary, Tolerances, build_master, group_for_masters
-from starex_reduce.core.settings import Settings
-from starex_reduce.core.subs import detect_rows
-from starex_reduce.synth import write_example
+from starextractor.core import datalocs as dl
+from starextractor.core import logbook
+from starextractor.core import naming as nm
+from starextractor.core import pair as pr
+from starextractor.core.cache import file_sha256
+from starextractor.core.files_stage import spec_from, stack_job
+from starextractor.core.fitsio import read_header, write_float32
+from starextractor.core.frames import BIAS, DARK, LIGHT, load_frame, scan
+from starextractor.core.jobs import Ctx
+from starextractor.core.masters import MasterLibrary, Tolerances, build_master, group_for_masters
+from starextractor.core.settings import Settings
+from starextractor.core.subs import detect_rows
+from starextractor.synth import write_example
 
 
 # 1 ---- naming ---------------------------------------------------------------------------------------------------
@@ -126,7 +126,7 @@ def test_missing_location_is_reported_and_nothing_is_created(tmp_path: Path, qtb
                                                              monkeypatch: pytest.MonkeyPatch) -> None:
     from PySide6.QtWidgets import QMessageBox
 
-    from starex_reduce.ui.data_locations import check_locations
+    from starextractor.ui.data_locations import check_locations
 
     s = Settings(tmp_path / "settings.json")
     s["data_root"] = str(tmp_path / "root")
@@ -162,7 +162,7 @@ def _masters(lib: MasterLibrary, night: dict) -> None:
 
 def _stack(paths: dl.DataPaths, lib: MasterLibrary, night: dict, role: str, name: str,
            frames: list[Path] | None = None) -> Path:
-    from starex_reduce.ui.screens.acquisition import stack_name
+    from starextractor.ui.screens.acquisition import stack_name
 
     files = frames or night[role]
     folder = paths.stacks / nm.observing_night(read_header(files[0])["DATE-OBS"])
@@ -204,7 +204,7 @@ def _copy(p: Path, folder: Path) -> Path:
 
 
 def test_master_matching_and_index_rebuild(tmp_path: Path, night: dict) -> None:
-    from starex_reduce.core.masters import LightSettings, pick_calibration
+    from starextractor.core.masters import LightSettings, pick_calibration
 
     paths = _root(tmp_path)
     lib = MasterLibrary(paths.masters)
@@ -230,9 +230,9 @@ def test_master_matching_and_index_rebuild(tmp_path: Path, night: dict) -> None:
 def win(qtbot: QtBot, tmp_path: Path, night: dict):
     from PySide6.QtWidgets import QApplication
 
-    from starex_reduce.core.session import Session
-    from starex_reduce.ui import theme
-    from starex_reduce.ui.main_window import MainWindow
+    from starextractor.core.session import Session
+    from starextractor.ui import theme
+    from starextractor.ui.main_window import MainWindow
 
     theme.apply(QApplication.instance())
     w = MainWindow(session=Session())
@@ -253,8 +253,8 @@ def _pair(w, night: dict) -> dict[str, Path]:
 
 
 def test_load_pair_creates_pair_folder_work_and_logbook(win, qtbot: QtBot, night: dict) -> None:
-    from starex_reduce.core.geometry_stage import geometry_job
-    from starex_reduce.core.geometry_stage import specs_for as geometry_specs
+    from starextractor.core.geometry_stage import geometry_job
+    from starextractor.core.geometry_stage import specs_for as geometry_specs
 
     stacks = _pair(win, night)
     f = win.files_screen
@@ -305,7 +305,7 @@ def test_different_pair_with_the_same_name_gets_2(tmp_path: Path, night: dict) -
 
 # 6 ---- logbook ----------------------------------------------------------------------------------------------------
 def test_logbook_atomic_unknown_fields_status_and_moved_root(tmp_path: Path, night: dict) -> None:
-    from starex_reduce.core.session import Session
+    from starextractor.core.session import Session
 
     paths = _root(tmp_path)
     lib = MasterLibrary(paths.masters)
@@ -353,8 +353,8 @@ def test_notes_autosave_round_trip(win, qtbot: QtBot, night: dict) -> None:
 
 
 def test_set_notes_are_imported_once(tmp_path: Path, night: dict) -> None:
-    from starex_reduce.core import acq_sets
-    from starex_reduce.core.session import Session
+    from starextractor.core import acq_sets
+    from starextractor.core.session import Session
 
     paths = _root(tmp_path)
     lib = MasterLibrary(paths.masters)
@@ -380,9 +380,9 @@ def test_set_notes_are_imported_once(tmp_path: Path, night: dict) -> None:
 
 # 7 ---- Promote -----------------------------------------------------------------------------------------------------
 def test_promote_versions_never_overwrite_and_no_sx(tmp_path: Path) -> None:
-    from starex_reduce.core import export as ex
-    from starex_reduce.core import stack_keys as sk
-    from starex_reduce.core.publish import SUBMISSION, promote
+    from starextractor.core import export as ex
+    from starextractor.core import stack_keys as sk
+    from starextractor.core.publish import SUBMISSION, promote
 
     paths = _root(tmp_path)
     pair = paths.processed / "2025-09-30_AGDra__HD145454"
@@ -412,7 +412,7 @@ def test_promote_versions_never_overwrite_and_no_sx(tmp_path: Path) -> None:
 
 # 8 ---- scan_pairs ----------------------------------------------------------------------------------------------------
 def test_scan_pairs_reads_logbooks_only_fast(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
-    import starex_reduce.core.fitsio as fio
+    import starextractor.core.fitsio as fio
 
     paths = _root(tmp_path)
     for i in range(20):

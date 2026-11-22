@@ -11,12 +11,12 @@ import pytest
 from PySide6.QtCore import QPointF
 from pytestqt.qtbot import QtBot
 
-from starex_reduce import synth
-from starex_reduce.core import subs as sb
-from starex_reduce.core.session import Session
-from starex_reduce.ui import theme
-from starex_reduce.ui.main_window import MainWindow
-from starex_reduce.ui.screens.acquisition import IMG_ZOOMS
+from starextractor import synth
+from starextractor.core import subs as sb
+from starextractor.core.session import Session
+from starextractor.ui import theme
+from starextractor.ui.main_window import MainWindow
+from starextractor.ui.screens.acquisition import IMG_ZOOMS
 
 ROW0 = 1100.0
 

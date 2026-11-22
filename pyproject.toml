@@ -1,5 +1,5 @@
 [project]
-name = "starex-reduce"
+name = "starextractor"
 version = "0.1.0"
 description = "Star ExTractor: spectroscopy reduction for low-resolution slit spectrographs (Star'Ex LR: stack, geometry, 1D extract, wavelength, response) and export for AAVSO AVSpec"
 license = "MIT"
@@ -19,17 +19,17 @@ dev = ["pytest>=7", "pytest-qt>=4.2", "ruff>=0.4"]
 build = ["pyinstaller>=6.11"]  # packaging/build.ps1 (Inno Setup 6 is installed separately)
 
 [project.scripts]
-starex-reduce = "starex_reduce.app:main"
+starextractor = "starextractor.app:main"
 
 [build-system]
 requires = ["setuptools>=77"]
 build-backend = "setuptools.build_meta"
 
 [tool.setuptools.packages.find]
-include = ["starex_reduce*"]
+include = ["starextractor*"]
 
 [tool.setuptools.package-data]
-starex_reduce = ["ui/icons/*.svg", "ui/about/*.jpg", "resources/*", "data/*", "reference_spectra/*"]
+starextractor = ["ui/icons/*.svg", "ui/about/*.jpg", "resources/*", "data/*", "reference_spectra/*"]
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]

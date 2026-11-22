@@ -7,8 +7,8 @@ from pathlib import Path
 import numpy as np
 import pytest
 
-from starex_reduce.core import wavelength as w
-from starex_reduce.core.instrument import SEED_DISPERSION
+from starextractor.core import wavelength as w
+from starextractor.core.instrument import SEED_DISPERSION
 
 FIX = Path(__file__).parent / "fixtures"
 BOX = (FIX / "bass_coefficients_GamCas_00004.txt").read_text(encoding="utf-8").strip()

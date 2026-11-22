@@ -6,9 +6,9 @@ import time
 import pytest
 from pytestqt.qtbot import QtBot
 
-from starex_reduce.core.demo import fake_stage
-from starex_reduce.core.jobs import Cancelled, CancelToken, Ctx
-from starex_reduce.workers.runner import JobRunner
+from starextractor.core.demo import fake_stage
+from starextractor.core.jobs import Cancelled, CancelToken, Ctx
+from starextractor.workers.runner import JobRunner
 
 
 def test_cancel_token_raises() -> None:

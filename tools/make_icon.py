@@ -1,4 +1,4 @@
-"""Rebuild starex_reduce/resources/starex.ico from the logo SVGs (Qt only, no Pillow).
+"""Rebuild starextractor/resources/starex.ico from the logo SVGs (Qt only, no Pillow).
 
     python tools/make_icon.py [--preview out.png]
 
@@ -30,7 +30,7 @@ def png_bytes(img) -> bytes:
 
 
 def build_ico(path: Path) -> list[int]:
-    from starex_reduce.ui.brand import icon_svg_for, render
+    from starextractor.ui.brand import icon_svg_for, render
 
     entries = [(s, png_bytes(render(icon_svg_for(s), s))) for s in SIZES]
     head = struct.pack("<HHH", 0, 1, len(entries))  # reserved, type 1 = icon, count
@@ -95,7 +95,7 @@ def main() -> int:
     from PySide6.QtGui import QGuiApplication
 
     app = QGuiApplication.instance() or QGuiApplication([])  # noqa: F841 - Qt needs it for images
-    from starex_reduce.ui.brand import ICO
+    from starextractor.ui.brand import ICO
 
     print("wrote", ICO, build_ico(ICO))
     if a.preview:

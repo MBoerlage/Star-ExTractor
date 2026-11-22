@@ -5,10 +5,10 @@ from pathlib import Path
 
 import numpy as np
 
-from starex_reduce.core.cache import ArrayLRU, DiskCache, file_fingerprint, stage_key
-from starex_reduce.core.pipeline import STAGE_IDS, input_name, output_name
-from starex_reduce.core.session import Session, Status
-from starex_reduce.core.settings import Settings
+from starextractor.core.cache import ArrayLRU, DiskCache, file_fingerprint, stage_key
+from starextractor.core.pipeline import STAGE_IDS, input_name, output_name
+from starextractor.core.session import Session, Status
+from starextractor.core.settings import Settings
 
 
 def _all_done(s: Session) -> None:

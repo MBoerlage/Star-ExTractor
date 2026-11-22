@@ -7,11 +7,11 @@ import numpy as np
 import pytest
 from pytestqt.qtbot import QtBot
 
-from starex_reduce.core import response as r
-from starex_reduce.core.fitsio import read_header, write_float32
-from starex_reduce.core.session import Session, Status
-from starex_reduce.ui import theme
-from starex_reduce.ui.main_window import MainWindow
+from starextractor.core import response as r
+from starextractor.core.fitsio import read_header, write_float32
+from starextractor.core.session import Session, Status
+from starextractor.ui import theme
+from starextractor.ui.main_window import MainWindow
 
 CRVAL, CDELT, N = 3900.0, 1.2056, 3401
 

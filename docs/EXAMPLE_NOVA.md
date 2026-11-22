@@ -10,7 +10,7 @@ The real frames (about 790 MB) are **not in the repository**. Download them from
 and unpack them so that this folder exists: `example_spectra/novasrg2026/` (with `SgrNov32026/`, `hd163955/`,
 `darks/`, `bias/`, …). The tests marked `realdata` use it and are skipped when it is missing. For a quick walk
 through every step without downloading anything, use the small synthetic night instead:
-`StarExtractor.exe --make-example <folder>` (or `python -m starex_reduce.app --make-example <folder>`).
+`StarExtractor.exe --make-example <folder>` (or `python -m starextractor.app --make-example <folder>`).
 
 ## Files
 | Path | What it is |

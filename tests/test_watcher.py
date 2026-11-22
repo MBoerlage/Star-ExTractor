@@ -9,7 +9,7 @@ from pathlib import Path
 import numpy as np
 from astropy.io import fits
 
-from starex_reduce.core.watcher import FolderWatcher
+from starextractor.core.watcher import FolderWatcher
 
 
 def _fits(path: Path, mtime: float) -> Path:

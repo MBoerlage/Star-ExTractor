@@ -9,10 +9,10 @@ from PySide6.QtGui import QImage
 from PySide6.QtWidgets import QApplication
 from pytestqt.qtbot import QtBot
 
-from starex_reduce.core.session import Session
-from starex_reduce.ui import help as hp
-from starex_reduce.ui import theme
-from starex_reduce.ui.main_window import MainWindow
+from starextractor.core.session import Session
+from starextractor.ui import help as hp
+from starextractor.ui import theme
+from starextractor.ui.main_window import MainWindow
 
 
 @pytest.fixture
@@ -57,7 +57,7 @@ def test_find_in_the_guide(win: MainWindow) -> None:
 
 @pytest.mark.parametrize("palette", ["night", "red"])
 def test_help_in_the_night_palettes(win: MainWindow, qtbot: QtBot, palette: str) -> None:
-    from starex_reduce.ui import retheme
+    from starextractor.ui import retheme
 
     dlg = win.open_help()
     retheme.switch(palette)

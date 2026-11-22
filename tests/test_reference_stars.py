@@ -1,6 +1,6 @@
 """Tests for the spectroscopic reference-star finder (ported from SpectroTargetTool, imports adjusted)."""
 
-from starex_reduce.core.reference_stars import _load_catalog, find_reference_stars
+from starextractor.core.reference_stars import _load_catalog, find_reference_stars
 
 
 class TestCatalog:
@@ -35,7 +35,7 @@ class TestFindReferenceStars:
 
 
 def test_catalog_spectral_types_with_decimal_commas_map_to_templates():
-    from starex_reduce.core.response import parse_sptype
+    from starextractor.core.response import parse_sptype
 
     assert parse_sptype("B2,5V") == ("B", 2.5, "V")
     assert parse_sptype("B9,5V+,,,") == ("B", 9.5, "V")
@@ -45,7 +45,7 @@ def test_catalog_spectral_types_with_decimal_commas_map_to_templates():
 def test_emission_line_stars_are_never_offered():
     import csv
 
-    from starex_reduce.core.reference_stars import _CATALOG_PATH, is_emission
+    from starextractor.core.reference_stars import _CATALOG_PATH, is_emission
 
     for sp in ("B2Ve", "B3Vne", "B1Vpe", "B6Vep", "B4Vnpe", "A2Vspe,,,", "B7Ve+,,,", "B8IIIe", "B2(e)"):
         assert is_emission(sp), sp
@@ -63,8 +63,8 @@ def test_emission_line_stars_are_never_offered():
 
 
 def test_saved_emission_reference_is_cleared():
-    from starex_reduce.core.plan import plan_state
-    from starex_reduce.core.session import Session
+    from starextractor.core.plan import plan_state
+    from starextractor.core.session import Session
 
     s = Session(None)
     s.params["plan"] = {"reference": {"name": "HD 5394", "sp_type": "B0,5Ve", "chosen": True}}

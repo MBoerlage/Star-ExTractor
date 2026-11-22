@@ -14,15 +14,15 @@ from astropy.io import fits
 from PySide6.QtWidgets import QMessageBox
 from pytestqt.qtbot import QtBot
 
-from starex_reduce.core import acq_sets, simbad
-from starex_reduce.core.files_stage import spec_from, stack_job, tolerances
-from starex_reduce.core.frames import BIAS, DARK, LIGHT, load_frame, scan
-from starex_reduce.core.jobs import Ctx
-from starex_reduce.core.masters import build_master, group_for_masters
-from starex_reduce.core.session import Session
-from starex_reduce.synth import write_example
-from starex_reduce.ui import theme
-from starex_reduce.ui.main_window import MainWindow
+from starextractor.core import acq_sets, simbad
+from starextractor.core.files_stage import spec_from, stack_job, tolerances
+from starextractor.core.frames import BIAS, DARK, LIGHT, load_frame, scan
+from starextractor.core.jobs import Ctx
+from starextractor.core.masters import build_master, group_for_masters
+from starextractor.core.session import Session
+from starextractor.synth import write_example
+from starextractor.ui import theme
+from starextractor.ui.main_window import MainWindow
 
 
 @pytest.fixture(scope="module")
@@ -239,13 +239,13 @@ def test_stack_selected_equals_the_files_step(win: MainWindow, qtbot: QtBot, tmp
     assert doc["target"]["rows"]["spec"]
     assert len(doc["target"]["good"]) == 2
     # the rows travel in the stack header; Load pair hands them to Extract (tests/test_files_pair.py)
-    from starex_reduce.core.stack_keys import rows1_of, rows_from_header
+    from starextractor.core.stack_keys import rows1_of, rows_from_header
 
     assert rows_from_header(h1) == rows1_of(a.rows_by["target"].to_json())
 
 
 def test_extract_first_guess_finds_the_stacked_spectrum_not_the_brightest_row() -> None:
-    from starex_reduce.core.extract_stage import resolve_bands
+    from starextractor.core.extract_stage import resolve_bands
 
     img = np.full((400, 600), 100.0, np.float32)
     img[60:90] += 3000.0  # a diffuse bright band
@@ -294,7 +294,7 @@ def test_library_folder_is_one_setting(win: MainWindow, qtbot: QtBot, tmp_path: 
     p.lib_folder.setText(str(new))
     p.lib_folder.editingFinished.emit()
     assert win.settings["data_paths"]["masters"] == str(new) and win.library.folder == new
-    from starex_reduce.ui.settings_dialog import SettingsDialog
+    from starextractor.ui.settings_dialog import SettingsDialog
 
     dlg = SettingsDialog(win.settings, win)
     assert dlg.locations.fields["masters"].text() == str(new)  # Settings › Data locations › Masters

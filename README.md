@@ -133,7 +133,7 @@ Python 3.11 or newer.
 pip install -e ".[dev]"
 ruff check .
 pytest -q
-python -m starex_reduce.app            # run from source (--no-splash: without the splash)
+python -m starextractor.app            # run from source (--no-splash: without the splash)
 python tools/startup_bench.py          # start-up times: splash visible, window shown, ready (median of 5)
 ```
 

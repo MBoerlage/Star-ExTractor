@@ -2,7 +2,7 @@
 
     python tools/make_splash.py [--source "Prism casting a horizontal stellar spectrum.png"]
 
-Writes starex_reduce/resources/splash.png (1x, 800 px wide) and splash@2x.png (2x, 1600 px wide): the art scaled
+Writes starextractor/resources/splash.png (1x, 800 px wide) and splash@2x.png (2x, 1600 px wide): the art scaled
 once here with a smooth filter, never at start-up. The 1x file is also the PyInstaller bootloader splash
 (packaging/starex_extractor.spec). The artwork itself is not changed; version and status text are drawn over it
 at run time (ui/splash.py).
@@ -15,7 +15,7 @@ from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[1]
 SOURCE = ROOT / "Prism casting a horizontal stellar spectrum.png"  # the same art as Help › About
-OUT = ROOT / "starex_reduce" / "resources"
+OUT = ROOT / "starextractor" / "resources"
 WIDTH_1X = 800
 
 

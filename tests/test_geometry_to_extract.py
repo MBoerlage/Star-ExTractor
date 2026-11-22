@@ -10,12 +10,12 @@ import numpy as np
 import pytest
 from pytestqt.qtbot import QtBot
 
-from starex_reduce.core.extract import Band, Bands
-from starex_reduce.core.extract_stage import corrected_path, specs_for
-from starex_reduce.core.fitsio import read_image, write_float32
-from starex_reduce.core.session import Session
-from starex_reduce.ui import theme
-from starex_reduce.ui.main_window import MainWindow
+from starextractor.core.extract import Band, Bands
+from starextractor.core.extract_stage import corrected_path, specs_for
+from starextractor.core.fitsio import read_image, write_float32
+from starextractor.core.session import Session
+from starextractor.ui import theme
+from starextractor.ui.main_window import MainWindow
 
 W, H = 1600, 1100
 TILT, SLANT = 0.3, -0.9
@@ -208,7 +208,7 @@ STAR_BANDS = Bands(Band(785, 815), Band(740, 769), Band(831, 860))
 
 
 def test_follow_measures_the_spectrum_in_the_band_not_the_brightest_row() -> None:
-    from starex_reduce.core.extract_stage import anchor_row, resolve_bands
+    from starextractor.core.extract_stage import anchor_row, resolve_bands
 
     set_on = two_spectra(800, 300)
     anchor = anchor_row(set_on, STAR_BANDS.spectrum)
@@ -223,7 +223,7 @@ def test_follow_measures_the_spectrum_in_the_band_not_the_brightest_row() -> Non
 
 
 def test_an_old_anchor_on_another_spectrum_does_not_move_the_bands() -> None:
-    from starex_reduce.core.extract_stage import resolve_bands
+    from starextractor.core.extract_stage import resolve_bands
 
     stored = {"bands": STAR_BANDS.to_json(), "anchor": 300.0}  # older sessions: the frame's brightest row
     bands, how, _ = resolve_bands(two_spectra(800, 291), stored, None)

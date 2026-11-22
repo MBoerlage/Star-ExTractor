@@ -13,9 +13,9 @@ from PySide6.QtGui import QImage
 from PySide6.QtWidgets import QApplication, QLabel, QWidget
 from pytestqt.qtbot import QtBot
 
-from starex_reduce.core.session import Session
-from starex_reduce.ui import retheme, theme
-from starex_reduce.ui.main_window import MainWindow
+from starextractor.core.session import Session
+from starextractor.ui import retheme, theme
+from starextractor.ui.main_window import MainWindow
 
 ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT / "tools"))
@@ -72,7 +72,7 @@ def test_no_colour_literals_outside_the_palette_module() -> None:
     literal = re.compile(r"#[0-9A-Fa-f]{6}\b|mk(Brush|Pen|Color)\(\s*\d|QColor\(\s*\d|QColor\(\s*\"|"
                          r"Qt\.GlobalColor\.(white|black|red|green|blue|gray|darkGray|lightGray|yellow|cyan)")
     hits = []
-    for p in ROOT.joinpath("starex_reduce", "ui").rglob("*.py"):
+    for p in ROOT.joinpath("starextractor", "ui").rglob("*.py"):
         if p.name in ALLOWED:
             continue
         for n, line in enumerate(p.read_text(encoding="utf-8").splitlines(), 1):
@@ -151,7 +151,7 @@ def test_the_switch_in_the_top_row(win: MainWindow, qtbot: QtBot) -> None:
 
 
 def test_palette_applied_before_the_window_is_shown() -> None:
-    src = ROOT.joinpath("starex_reduce", "app.py").read_text("utf-8")
+    src = ROOT.joinpath("starextractor", "app.py").read_text("utf-8")
     apply_at = src.index('theme.apply(app, str((settings["ui"]')
     assert apply_at < src.index("win = MainWindow(") < src.index("win.show()")
     assert "FirstRunDialog" not in src[:apply_at]  # even the first-run dialog opens in the palette
@@ -183,7 +183,7 @@ def test_toggling_twice_is_the_exact_default_look(win: MainWindow, qtbot: QtBot)
 
 
 def test_logo_is_monochrome_at_night() -> None:
-    from starex_reduce.ui import brand
+    from starextractor.ui import brand
 
     theme.set_palette("night", emit=False)
     try:
@@ -200,7 +200,7 @@ def test_logo_is_monochrome_at_night() -> None:
 
 # 6 -------------------------------------------------------------------------------------------------------------
 def test_image_lut_follows_the_palette(win: MainWindow, qtbot: QtBot) -> None:
-    from starex_reduce.ui.widgets.image_viewer import ImageViewer
+    from starextractor.ui.widgets.image_viewer import ImageViewer
 
     v = ImageViewer()
     qtbot.addWidget(v)

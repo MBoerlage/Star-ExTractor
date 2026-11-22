@@ -7,12 +7,12 @@ import numpy as np
 import pytest
 from astropy.io import fits
 
-from starex_reduce.core import geometry as g
-from starex_reduce.core import wavelength as w
-from starex_reduce.core.extract import auto_place, extract
-from starex_reduce.core.fitsio import read_image
-from starex_reduce.core.instrument import SEED_DISPERSION
-from starex_reduce.core.jobs import Ctx
+from starextractor.core import geometry as g
+from starextractor.core import wavelength as w
+from starextractor.core.extract import auto_place, extract
+from starextractor.core.fitsio import read_image
+from starextractor.core.instrument import SEED_DISPERSION
+from starextractor.core.jobs import Ctx
 
 EXAMPLE = Path(__file__).resolve().parents[1] / "example_spectra" / "novasrg2026"
 pytestmark = [pytest.mark.realdata, pytest.mark.skipif(not EXAMPLE.exists(), reason="example_spectra not present")]

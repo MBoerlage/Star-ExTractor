@@ -8,8 +8,8 @@ import numpy as np
 import pytest
 from astropy.io import fits
 
-from starex_reduce.core import coords
-from starex_reduce.core.fitsio import (
+from starextractor.core import coords
+from starextractor.core.fitsio import (
     FitsError,
     ascii_text,
     open_image,
@@ -18,7 +18,7 @@ from starex_reduce.core.fitsio import (
     read_header_info,
     write_float32,
 )
-from starex_reduce.core.frames import (
+from starextractor.core.frames import (
     BIAS,
     DARK,
     DARKFLAT,

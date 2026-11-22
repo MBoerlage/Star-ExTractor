@@ -9,13 +9,13 @@ import pytest
 from astropy.io import fits
 from pytestqt.qtbot import QtBot
 
-from starex_reduce.core import target_wave as tw
-from starex_reduce.core import wavelength as w
-from starex_reduce.core.fitsio import write_float32
-from starex_reduce.core.instrument import SEED_DISPERSION
-from starex_reduce.core.session import Session
-from starex_reduce.ui import theme
-from starex_reduce.ui.main_window import MainWindow
+from starextractor.core import target_wave as tw
+from starextractor.core import wavelength as w
+from starextractor.core.fitsio import write_float32
+from starextractor.core.instrument import SEED_DISPERSION
+from starextractor.core.session import Session
+from starextractor.ui import theme
+from starextractor.ui.main_window import MainWindow
 
 TRUE = w.Solution(list(SEED_DISPERSION["coeffs_nm"])).shifted(17.7)  # the reference's true solution
 TSHIFT = 9.3  # the target sits 9.3 px off it

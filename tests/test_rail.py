@@ -11,11 +11,11 @@ import pytest
 from PySide6.QtCore import Qt
 from pytestqt.qtbot import QtBot
 
-from starex_reduce.core.pipeline import STAGES
-from starex_reduce.core.session import Session, Status
-from starex_reduce.ui import theme
-from starex_reduce.ui.main_window import MainWindow
-from starex_reduce.ui.rail import GROUPS, NARROW_W, Rail, StepState
+from starextractor.core.pipeline import STAGES
+from starextractor.core.session import Session, Status
+from starextractor.ui import theme
+from starextractor.ui.main_window import MainWindow
+from starextractor.ui.rail import GROUPS, NARROW_W, Rail, StepState
 
 ROOT = Path(__file__).resolve().parents[1]
 REDUCE = ("select", "geometry", "extract", "wavelength", "response")
@@ -140,7 +140,7 @@ def test_click_hits_the_right_step_and_header(win: MainWindow, qtbot: QtBot) -> 
 def test_old_tabs_and_ribbons_are_gone(win: MainWindow) -> None:
     import importlib
 
-    for mod in ("starex_reduce.ui.ribbon", "starex_reduce.ui.tab_row"):
+    for mod in ("starextractor.ui.ribbon", "starextractor.ui.tab_row"):
         with pytest.raises(ModuleNotFoundError):
             importlib.import_module(mod)
     assert not hasattr(win, "ribbon") and not hasattr(win, "tabs") and not hasattr(win, "ribbon_box")
@@ -159,14 +159,14 @@ def test_rename_files_to_select(win: MainWindow, tmp_path: Path, qtbot: QtBot) -
     step_name = re.compile(r"(Reduce\s*[>›]\s*Files|\bFiles step\b|in Files first|\bFiles says\b|"
                            r"Files › Pair notes|Files › Load pair|from Files:)")
     hits = []
-    for p in [*ROOT.joinpath("starex_reduce").rglob("*.py"), ROOT / "README.md",
+    for p in [*ROOT.joinpath("starextractor").rglob("*.py"), ROOT / "README.md",
               *(d for d in ROOT.joinpath("docs").glob("*.md") if d.name != "BUILD_PLAN.md")]:
         for n, line in enumerate(p.read_text(encoding="utf-8").splitlines(), 1):
             if step_name.search(line) and not re.search(r"old Files step|called Files|now Select", line):
                 hits.append(f"{p.name}:{n}: {line.strip()[:90]}")
     assert not hits, hits
     # an old stored location (the step id from before) opens on Select
-    from starex_reduce.core.settings import Settings
+    from starextractor.core.settings import Settings
 
     sp = tmp_path / "home" / "settings.json"
     sp.parent.mkdir()
@@ -180,7 +180,7 @@ def test_rename_files_to_select(win: MainWindow, tmp_path: Path, qtbot: QtBot) -
 
 # 6 -------------------------------------------------------------------------------------------------------------
 def test_rail_uses_theme_tokens_only() -> None:
-    src = ROOT.joinpath("starex_reduce", "ui", "rail.py").read_text(encoding="utf-8")
+    src = ROOT.joinpath("starextractor", "ui", "rail.py").read_text(encoding="utf-8")
     assert not re.search(r"#[0-9a-fA-F]{6}\b|QColor\(\s*\d", src)  # colours come from theme only
 
 

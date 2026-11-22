@@ -6,11 +6,11 @@ from pathlib import Path
 import pytest
 from pytestqt.qtbot import QtBot
 
-from starex_reduce.core import acq_sets
-from starex_reduce.core.session import Session
-from starex_reduce.synth import write_example
-from starex_reduce.ui import theme
-from starex_reduce.ui.main_window import MainWindow
+from starextractor.core import acq_sets
+from starextractor.core.session import Session
+from starextractor.synth import write_example
+from starextractor.ui import theme
+from starextractor.ui.main_window import MainWindow
 
 
 @pytest.fixture

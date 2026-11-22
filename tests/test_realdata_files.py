@@ -8,10 +8,10 @@ import numpy as np
 import pytest
 from scipy.ndimage import median_filter
 
-from starex_reduce.core.fitsio import read_image
-from starex_reduce.core.frames import BIAS, DARK, scan
-from starex_reduce.core.jobs import Ctx
-from starex_reduce.core.masters import (
+from starextractor.core.fitsio import read_image
+from starextractor.core.frames import BIAS, DARK, scan
+from starextractor.core.jobs import Ctx
+from starextractor.core.masters import (
     LightSettings,
     MasterLibrary,
     build_master,
@@ -19,7 +19,7 @@ from starex_reduce.core.masters import (
     group_for_masters,
     pick_calibration,
 )
-from starex_reduce.core.stack import StackParams, run_stack
+from starextractor.core.stack import StackParams, run_stack
 
 EXAMPLE = Path(__file__).resolve().parents[1] / "example_spectra" / "novasrg2026"
 pytestmark = [pytest.mark.realdata,

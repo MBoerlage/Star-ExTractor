@@ -9,12 +9,12 @@ import numpy as np
 import pytest
 from scipy import ndimage
 
-from starex_reduce.core import geometry as g
-from starex_reduce.core.fitsio import write_float32
-from starex_reduce.core.geometry_stage import GeometrySpec, geometry_job, slant_detect_job, slant_for
-from starex_reduce.core.instrument import InstrumentProfile
-from starex_reduce.core.jobs import Ctx
-from starex_reduce.synth import slanted_frame
+from starextractor.core import geometry as g
+from starextractor.core.fitsio import write_float32
+from starextractor.core.geometry_stage import GeometrySpec, geometry_job, slant_detect_job, slant_for
+from starextractor.core.instrument import InstrumentProfile
+from starextractor.core.jobs import Ctx
+from starextractor.synth import slanted_frame
 
 TILT = -0.67
 
@@ -123,7 +123,7 @@ def test_never_corrects_twice(tmp_path: Path) -> None:
                         "manual", None, None, "detect")
     run = geometry_job(Ctx(), [spec])
     assert "slant +1.000° (detect)" in run.log[0]
-    from starex_reduce.core.fitsio import read_header
+    from starextractor.core.fitsio import read_header
     assert read_header(out)["GEO_SLNT"] == 1.0
     again = GeometrySpec("Target", out, tmp_path / "x.fit", spec.params, "manual", None, None, "detect")
     with pytest.raises(ValueError, match="already geometry-corrected"):
@@ -140,7 +140,7 @@ def test_drawn_slant_in_image_pixels() -> None:
 
 def test_drawn_slant_is_independent_of_the_view_zoom(qtbot) -> None:
     """The viewer stretches Y (rows shown taller than columns): scene points map back to image pixels."""
-    from starex_reduce.ui.widgets.image_viewer import ImageViewer
+    from starextractor.ui.widgets.image_viewer import ImageViewer
 
     v = ImageViewer()
     qtbot.addWidget(v)

@@ -22,7 +22,7 @@ sys.path.insert(0, str(ROOT))
 sys.path.insert(0, str(ROOT / "tools"))
 
 TOLERANCE = 1.5  # fail when a measurement exceeds its budget by more than 50 %
-WORK = Path(tempfile.gettempdir()) / "starex_reduce_perf"
+WORK = Path(tempfile.gettempdir()) / "starextractor_perf"
 
 
 @dataclass
@@ -48,12 +48,12 @@ OFFSCREEN = False
 
 def bench_app_start() -> float:
     """In-process time until the rail is painted on a real window (Select fills in just after)."""
-    env = {**os.environ, "STAREX_REDUCE_HOME": str(WORK / "home")}
+    env = {**os.environ, "STAREXTRACTOR_HOME": str(WORK / "home")}
     if OFFSCREEN:
         env["QT_QPA_PLATFORM"] = "offscreen"
     best, ready = float("inf"), float("inf")
     for _ in range(3):
-        out = subprocess.run([sys.executable, "-m", "starex_reduce.app", "--startup-time"],
+        out = subprocess.run([sys.executable, "-m", "starextractor.app", "--startup-time"],
                              capture_output=True, text=True, env=env, cwd=ROOT, timeout=60)
         vals = dict(line.split("=") for line in out.stdout.split() if "=" in line)
         if "shown_s" not in vals:
@@ -65,7 +65,7 @@ def bench_app_start() -> float:
 
 
 def bench_session_open() -> float:
-    from starex_reduce.core.session import Session
+    from starextractor.core.session import Session
 
     folder = WORK / "session"
     s = Session.create(folder)
@@ -92,7 +92,7 @@ def synthetic_night() -> dict[str, list[Path]]:
 
 
 def bench_scan() -> float:
-    from starex_reduce.core.frames import scan
+    from starextractor.core.frames import scan
 
     night = synthetic_night()
     folder = night["target"][0].parent  # 15 frames; scan both light folders = 30 headers
@@ -101,9 +101,9 @@ def bench_scan() -> float:
 
 
 def _library(fresh: bool) -> tuple[object, dict[str, list[Path]]]:
-    from starex_reduce.core.frames import BIAS, DARK, scan
-    from starex_reduce.core.jobs import Ctx
-    from starex_reduce.core.masters import MasterLibrary, build_master
+    from starextractor.core.frames import BIAS, DARK, scan
+    from starextractor.core.jobs import Ctx
+    from starextractor.core.masters import MasterLibrary, build_master
 
     night = synthetic_night()
     folder = WORK / "masters"
@@ -118,9 +118,9 @@ def _library(fresh: bool) -> tuple[object, dict[str, list[Path]]]:
 
 
 def bench_master() -> float:
-    from starex_reduce.core.frames import DARK, scan
-    from starex_reduce.core.jobs import Ctx
-    from starex_reduce.core.masters import MasterLibrary, build_master
+    from starextractor.core.frames import DARK, scan
+    from starextractor.core.jobs import Ctx
+    from starextractor.core.masters import MasterLibrary, build_master
 
     night = synthetic_night()
     darks = scan(night["darks"][0].parent)
@@ -129,10 +129,10 @@ def bench_master() -> float:
 
 
 def bench_stack() -> float:
-    from starex_reduce.core.frames import scan
-    from starex_reduce.core.jobs import Ctx
-    from starex_reduce.core.masters import LightSettings, calibration_frame, pick_calibration
-    from starex_reduce.core.stack import StackParams, run_stack
+    from starextractor.core.frames import scan
+    from starextractor.core.jobs import Ctx
+    from starextractor.core.masters import LightSettings, calibration_frame, pick_calibration
+    from starextractor.core.stack import StackParams, run_stack
 
     lib, night = _library(fresh=False)
     lights = scan(night["target"][0].parent)
@@ -146,16 +146,16 @@ def bench_stack() -> float:
 
 def real_nova_report() -> None:
     """Informational: the real BUILD_PLAN M1 numbers on example_spectra/novasrg2026."""
-    from starex_reduce.core.frames import BIAS, DARK, scan
-    from starex_reduce.core.jobs import Ctx
-    from starex_reduce.core.masters import (
+    from starextractor.core.frames import BIAS, DARK, scan
+    from starextractor.core.jobs import Ctx
+    from starextractor.core.masters import (
         LightSettings,
         MasterLibrary,
         build_master,
         calibration_frame,
         pick_calibration,
     )
-    from starex_reduce.core.stack import StackParams, run_stack
+    from starextractor.core.stack import StackParams, run_stack
 
     base = ROOT / "example_spectra" / "novasrg2026"
     if not base.exists():
@@ -190,30 +190,30 @@ def _full_frame() -> tuple[object, object]:
 
 
 def bench_tilt() -> float:
-    from starex_reduce.core.geometry import detect_tilt
+    from starextractor.core.geometry import detect_tilt
 
     img, _ = _full_frame()
     return best_of(lambda: detect_tilt(img), 3)  # type: ignore[arg-type]
 
 
 def bench_geometry() -> float:
-    from starex_reduce.core.geometry import GeometryParams, correct
-    from starex_reduce.core.jobs import Ctx
+    from starextractor.core.geometry import GeometryParams, correct
+    from starextractor.core.jobs import Ctx
 
     img, dark = _full_frame()
     return best_of(lambda: correct(img, GeometryParams(), Ctx(), dark), 3)  # type: ignore[arg-type]
 
 
 def bench_geometry_slant() -> float:
-    from starex_reduce.core.geometry import GeometryParams, correct
-    from starex_reduce.core.jobs import Ctx
+    from starextractor.core.geometry import GeometryParams, correct
+    from starextractor.core.jobs import Ctx
 
     img, dark = _full_frame()
     return best_of(lambda: correct(img, GeometryParams(slant_deg=-1.45), Ctx(), dark), 3)  # type: ignore[arg-type]
 
 
 def bench_slant_detect() -> float:
-    from starex_reduce.core.geometry import detect_slant, detect_tilt, straighten
+    from starextractor.core.geometry import detect_slant, detect_tilt, straighten
 
     img, _ = _full_frame()
     t = detect_tilt(img)
@@ -229,11 +229,11 @@ def bench_view_fps() -> float:
     import numpy as np
     from PySide6.QtWidgets import QApplication
 
-    from starex_reduce.core.display import prepare
-    from starex_reduce.core.geometry import GeometryParams, correct
-    from starex_reduce.core.jobs import Ctx
-    from starex_reduce.ui import theme
-    from starex_reduce.ui.widgets.image_viewer import ImageViewer
+    from starextractor.core.display import prepare
+    from starextractor.core.geometry import GeometryParams, correct
+    from starextractor.core.jobs import Ctx
+    from starextractor.ui import theme
+    from starextractor.ui.widgets.image_viewer import ImageViewer
 
     app = QApplication.instance() or QApplication([])
     theme.apply(app)
@@ -270,15 +270,15 @@ def bench_view_fps() -> float:
 
 
 def _straight() -> object:
-    from starex_reduce.core.geometry import GeometryParams, correct
-    from starex_reduce.core.jobs import Ctx
+    from starextractor.core.geometry import GeometryParams, correct
+    from starextractor.core.jobs import Ctx
 
     img, _ = _full_frame()
     return correct(img, GeometryParams(), Ctx()).image  # type: ignore[arg-type]
 
 
 def bench_extract() -> float:
-    from starex_reduce.core.extract import auto_place, extract
+    from starextractor.core.extract import auto_place, extract
 
     img = _straight()
     bands = auto_place(img).bands  # type: ignore[arg-type]
@@ -290,11 +290,11 @@ def bench_band_drag() -> float:
     import pyqtgraph as pg
     from PySide6.QtWidgets import QApplication, QVBoxLayout, QWidget
 
-    from starex_reduce.core.display import prepare
-    from starex_reduce.core.extract import auto_place, extract
-    from starex_reduce.ui import theme
-    from starex_reduce.ui.widgets.bands import BandOverlay
-    from starex_reduce.ui.widgets.image_viewer import ImageViewer
+    from starextractor.core.display import prepare
+    from starextractor.core.extract import auto_place, extract
+    from starextractor.ui import theme
+    from starextractor.ui.widgets.bands import BandOverlay
+    from starextractor.ui.widgets.image_viewer import ImageViewer
 
     app = QApplication.instance() or QApplication([])
     theme.apply(app)
@@ -337,9 +337,9 @@ def bench_wavelength() -> float:
     """Free Balmer fit on a reference profile + resampling target and reference."""
     import numpy as np
 
-    from starex_reduce.core import wavelength as w
-    from starex_reduce.core.extract import auto_place, extract
-    from starex_reduce.core.instrument import SEED_DISPERSION
+    from starextractor.core import wavelength as w
+    from starextractor.core.extract import auto_place, extract
+    from starextractor.core.instrument import SEED_DISPERSION
 
     img = _straight()
     prof = extract(img, auto_place(img).bands).profile.astype(np.float64)  # type: ignore[arg-type]
@@ -357,7 +357,7 @@ def bench_response() -> float:
     """Response from an A0V reference + apply to the target + normalise and crop."""
     import numpy as np
 
-    from starex_reduce.core import response as r
+    from starextractor.core import response as r
 
     lam = 3900 + 1.2056 * np.arange(3401)
     ll, lf = r.load_template("a0v")
@@ -375,7 +375,7 @@ def bench_response() -> float:
 
 def bench_sub() -> float:
     """Acquisition: analyse one 3840x2160 sub with locked rows (strip read through the memmap)."""
-    from starex_reduce.core.subs import analyse_sub, detect_rows
+    from starextractor.core.subs import analyse_sub, detect_rows
 
     real = sorted((ROOT / "example_spectra" / "novasrg2026" / "SgrNov32026").glob("*.fits"))
     path = real[0] if real else synthetic_night()["target"][0]
@@ -391,14 +391,14 @@ def bench_run_all() -> float:
 
     import numpy as np
 
-    from starex_reduce.core import geometry as g
-    from starex_reduce.core import response as r
-    from starex_reduce.core import wavelength as w
-    from starex_reduce.core.extract import auto_place, extract
-    from starex_reduce.core.frames import BIAS, DARK, scan
-    from starex_reduce.core.instrument import SEED_DISPERSION
-    from starex_reduce.core.jobs import Ctx
-    from starex_reduce.core.masters import (
+    from starextractor.core import geometry as g
+    from starextractor.core import response as r
+    from starextractor.core import wavelength as w
+    from starextractor.core.extract import auto_place, extract
+    from starextractor.core.frames import BIAS, DARK, scan
+    from starextractor.core.instrument import SEED_DISPERSION
+    from starextractor.core.jobs import Ctx
+    from starextractor.core.masters import (
         LightSettings,
         MasterLibrary,
         build_master,
@@ -406,7 +406,7 @@ def bench_run_all() -> float:
         group_for_masters,
         pick_calibration,
     )
-    from starex_reduce.core.stack import StackParams, stack
+    from starextractor.core.stack import StackParams, stack
 
     base = ROOT / "example_spectra" / "novasrg2026"
     if base.exists():

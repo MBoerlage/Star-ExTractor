@@ -16,9 +16,9 @@ PROJECTS = ROOT.parent / "projects"
 
 @pytest.fixture(autouse=True)
 def _isolated_home(tmp_path_factory: pytest.TempPathFactory, monkeypatch: pytest.MonkeyPatch) -> Path:
-    """Never read or write the real %APPDATA%\\starex_reduce during tests."""
+    """Never read or write the real %APPDATA%\\StarExtractor during tests."""
     home = tmp_path_factory.mktemp("home")
-    monkeypatch.setenv("STAREX_REDUCE_HOME", str(home))
+    monkeypatch.setenv("STAREXTRACTOR_HOME", str(home))
     return home
 
 

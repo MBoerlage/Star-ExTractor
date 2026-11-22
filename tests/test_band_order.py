@@ -6,8 +6,8 @@ import os
 import numpy as np
 import pytest
 
-from starex_reduce.core import subs as sb
-from starex_reduce.core.extract import Band, Bands, auto_place
+from starextractor.core import subs as sb
+from starextractor.core.extract import Band, Bands, auto_place
 
 
 def in_order(b: Bands) -> bool:
@@ -58,8 +58,8 @@ def overlay():
     os.environ.setdefault("QT_QPA_PLATFORM", "offscreen")
     from PySide6.QtWidgets import QApplication
 
-    from starex_reduce.ui.widgets.bands import BandOverlay
-    from starex_reduce.ui.widgets.plot_guard import pg
+    from starextractor.ui.widgets.bands import BandOverlay
+    from starextractor.ui.widgets.plot_guard import pg
 
     QApplication.instance() or QApplication([])
     ov = BandOverlay(pg.ViewBox())

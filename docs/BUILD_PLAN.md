@@ -40,13 +40,13 @@ Work milestone by milestone. Each ends with: `pytest` green, perf harness number
 **Accept:** file opens in astropy and BASS/ISIS-style tools; header has every key listed in FORMATS.md and every key of the accepted `submitted/_v8055sgr_20260821_155_CSagan.fit` (see EXAMPLE_NOVA.md); filename follows the verified pattern; "no response applied" export works as an option (the submitted file turned out to be response-corrected but not normalised, see EXAMPLE_NOVA.md); Matt runs the AAVSO submission pre-check and reports back.
 
 ## M7 – Polish
-- Run all, session reopen with lazy loading, error handling pass, keyboard navigation, window resizing, settings dialog, `Start_StarexReduce.bat`, README, optional PyInstaller build.
+- Run all, session reopen with lazy loading, error handling pass, keyboard navigation, window resizing, settings dialog, `Start_StarExtractor.bat`, README, optional PyInstaller build.
 **Accept:** full run on real data in < 10 s with cached masters; reopening yesterday's session shows the right ribbon instantly; every budget in SPEC §8 met.
 
 ## OPEN items (ask Matt only for these)
 0. ~~Publishing crop~~ **Decided:** 3900–7700 Å, so the O₂ A band stays in; AAVSO telluric lines are shown on the Export tab as a visual check.
 1. ~~BASS coefficient string~~ **Resolved:** Matt supplied a real coefficients string and a full BASS export; see `docs/BASS_CALIBRATION.md` and `tests/fixtures/`.
-2. ~~Response library~~ **Resolved:** Matt supplied the Pickles/HILIB templates in `starex_reduce/reference_spectra/` (108 `.dat` files plus README.HILIB). The odd `w…` and `r…` templates (metal-weak/metal-rich variants) were deleted by Matt, so only the standard spectral-type files remain.
+2. ~~Response library~~ **Resolved:** Matt supplied the Pickles/HILIB templates in `starextractor/reference_spectra/` (108 `.dat` files plus README.HILIB). The odd `w…` and `r…` templates (metal-weak/metal-rich variants) were deleted by Matt, so only the standard spectral-type files remain.
 3. ~~Reference result for validation~~ **Resolved:** `example_spectra/novasrg2026` holds raw frames, BASS stacks, 1D, response and the submitted AAVSO file; see `docs/EXAMPLE_NOVA.md`.
 4. **Lamp frames:** will Matt take neon/lamp frames at all? (Affects whether smile and "Use a lamp frame" need to be fully built in v1.)
 5. ~~ARAS file naming convention, upload route~~ **Dropped:** ARAS export removed (Matt, 2026-11-16). and the site-position keywords (see FORMATS.md VERIFY items; Claude Code researches, Matt confirms). The filename pattern in EXAMPLE_NOVA.md is a hypothesis to check against the AAVSO guide.

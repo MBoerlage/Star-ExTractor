@@ -70,13 +70,13 @@ class Shooter:
         self.public = Path(os.environ.get("PUBLIC", str(self.tmp))) / "StarExtractorShots"
         shutil.rmtree(self.public, ignore_errors=True)
         self.root = self.public / "StarExtractorData"
-        os.environ["STAREX_REDUCE_HOME"] = str(self.tmp / "home")
+        os.environ["STAREXTRACTOR_HOME"] = str(self.tmp / "home")
         from PySide6.QtWidgets import QApplication
 
-        from starex_reduce.ui import theme
+        from starextractor.ui import theme
 
         self.app = QApplication.instance() or QApplication([])
-        from starex_reduce.ui import retheme
+        from starextractor.ui import retheme
 
         if theme.palette != self.palette:
             retheme.switch(self.palette)
@@ -132,8 +132,8 @@ class Shooter:
         the night palette (dimmed) and 2x scaling."""
         from PySide6.QtGui import QImage
 
-        from starex_reduce import version
-        from starex_reduce.ui import splash as sp
+        from starextractor import version
+        from starextractor.ui import splash as sp
 
         def render(palette: str, ratio: float, status: str):
             s = sp.Splash(version(), palette, ratio=ratio)
@@ -155,7 +155,7 @@ class Shooter:
     def about(self) -> None:
         """About: the credit roll at the start, the middle and the end of its loop, and the reduced-motion list
         (this set's palette; the night set shoots the middle frame only)."""
-        from starex_reduce.ui.about import ROLL_H, AboutDialog
+        from starextractor.ui.about import ROLL_H, AboutDialog
 
         frames = [("start", "the title entering at the bottom", 70)]
         if self.palette == "default":
@@ -183,9 +183,9 @@ class Shooter:
 
     def window(self, folder: Path, root: Path | None = None):
         """A window whose data root is `root` (default: the shared one); `folder` is only for the Plan's session."""
-        from starex_reduce.core import datalocs
-        from starex_reduce.core.session import Session
-        from starex_reduce.ui.main_window import MainWindow
+        from starextractor.core import datalocs
+        from starextractor.core.session import Session
+        from starextractor.ui.main_window import MainWindow
 
         win = MainWindow(session=Session.create(folder) if folder is not None else Session())
         win.settings["data_root"] = str(root or self.root)
@@ -204,7 +204,7 @@ class Shooter:
 
     # ---- Plan ------------------------------------------------------------------------------------------
     def plan(self) -> None:
-        from starex_reduce.core import simbad
+        from starextractor.core import simbad
 
         win = self.window(self.tmp / "plan" / "2026-08-20")
         win.show_tab("plan")
@@ -236,7 +236,7 @@ class Shooter:
         range so the shots repeat."""
         from PySide6.QtCore import QDate, QTime
 
-        from starex_reduce.core import plan as pl
+        from starextractor.core import plan as pl
 
         win = self.window(self.tmp / "plan_cond" / "2026-11-20")
         win.settings["site"] = {"lat": 30.6714, "lon": -104.0225}
@@ -306,8 +306,8 @@ class Shooter:
         load confirmation."""
         from PySide6.QtCore import QDate, QTime
 
-        from starex_reduce.core import plan as pl
-        from starex_reduce.ui import dialogs
+        from starextractor.core import plan as pl
+        from starextractor.ui import dialogs
 
         win = self.window(self.tmp / "planned" / "2026-11-20")
         win.settings["site"] = {"lat": 30.6714, "lon": -104.0225}
@@ -366,7 +366,7 @@ class Shooter:
         from PySide6.QtCore import QUrl
         from PySide6.QtWidgets import QInputDialog, QLineEdit, QTreeView
 
-        from starex_reduce.ui import dialogs, retheme, theme
+        from starextractor.ui import dialogs, retheme, theme
 
         capture = self.public / "Capture" / "2026-11-20" / "V1405Cas"
         (capture / "darks").mkdir(parents=True, exist_ok=True)
@@ -435,7 +435,7 @@ class Shooter:
         reference), the window's minimum size, and many pairs with the fixed-height plan view scrolling."""
         from PySide6.QtCore import QDate, QTime
 
-        from starex_reduce.core import plan as pl
+        from starextractor.core import plan as pl
 
         win = self.window(self.tmp / "layout" / "2026-11-20")
         win.settings["site"] = {"lat": 30.6714, "lon": -104.0225}  # McDonald Observatory
@@ -618,8 +618,8 @@ class Shooter:
 
     def files_shots(self, win, files, pair: str, prefix: str = "") -> None:
         """Select empty, loaded from the Acquisition stacks, with an old stack, then Load pair (chevron done)."""
-        from starex_reduce.core.fitsio import read_header, read_image, write_float32
-        from starex_reduce.core.stack_keys import strip_sx
+        from starextractor.core.fitsio import read_header, read_image, write_float32
+        from starextractor.core.stack_keys import strip_sx
 
         for c in files.cards.values():
             c.set_file(None)
@@ -656,8 +656,8 @@ class Shooter:
         ADU profile, and 1D Extract on the same profile."""
         import numpy as np
 
-        from starex_reduce.core.session import Session
-        from starex_reduce.synth import Donut, make_donut, write_donut
+        from starextractor.core.session import Session
+        from starextractor.synth import Donut, make_donut, write_donut
 
         sub = write_donut(self.tmp / "donut" / "Donut_00001.fits")
         win = self.window(None, self.public / "DonutData")
@@ -687,7 +687,7 @@ class Shooter:
         # 1D Extract on the same profile (a pair folder with the donut as the geometry-corrected stack)
         folder = self.public / "DonutData" / "Processed" / "2025-10-02_Donut__Ref"
         sess = Session.create(folder)
-        from starex_reduce.core.fitsio import write_float32
+        from starextractor.core.fitsio import write_float32
 
         img = make_donut(Donut(), seed=1)
         for name in ("Target", "Reference"):
@@ -695,7 +695,7 @@ class Shooter:
                 write_float32(folder / "work" / f"{name}_{suffix}.fit", img, {"OBJECT": name, "GEO_TILT": 0.0})
         sess.mark_done("files", {"Target": "work/Target_S.fit", "Reference": "work/Reference_S.fit"}, "pair")
         sess.mark_done("geometry", {"Target": "work/Target_G.fit", "Reference": "work/Reference_G.fit"}, "tilt 0")
-        from starex_reduce.ui.main_window import MainWindow
+        from starextractor.ui.main_window import MainWindow
 
         win = MainWindow(session=sess)
         win.resize(W, H)
@@ -715,9 +715,9 @@ class Shooter:
 
     def library(self) -> None:
         """The Library tab on the synthetic multi-night data root (synth.write_library)."""
-        from starex_reduce.core import datalocs
-        from starex_reduce.core.datalocs import to_stored
-        from starex_reduce.synth import write_library
+        from starextractor.core import datalocs
+        from starextractor.core.datalocs import to_stored
+        from starextractor.synth import write_library
 
         root = self.public / "LibraryData"
         made = write_library(root)
@@ -758,8 +758,8 @@ class Shooter:
 
     def rail(self) -> None:
         """The workflow rail in a few states (a session whose first steps are marked done)."""
-        from starex_reduce.core.session import Session
-        from starex_reduce.ui.main_window import MainWindow
+        from starextractor.core.session import Session
+        from starextractor.ui.main_window import MainWindow
 
         s = Session.create(self.tmp / "rail" / "pair")
         for sid in ("files", "geometry", "extract"):
@@ -789,8 +789,8 @@ class Shooter:
         win.close()
 
     def _cal_window(self, folder: Path):
-        from starex_reduce.core.session import Session
-        from starex_reduce.ui.main_window import MainWindow
+        from starextractor.core.session import Session
+        from starextractor.ui.main_window import MainWindow
 
         win = MainWindow(session=Session.load(folder))
         win.settings["data_root"] = str(self.root)
@@ -821,10 +821,10 @@ class Shooter:
     def _synthetic_pair(self, name: str, **kw) -> Path:
         import numpy as np
 
-        from starex_reduce.core import logbook
-        from starex_reduce.core.fitsio import write_float32
-        from starex_reduce.core.session import Session
-        from starex_reduce.synth import WAVE_REF, wave_case
+        from starextractor.core import logbook
+        from starextractor.core.fitsio import write_float32
+        from starextractor.core.session import Session
+        from starextractor.synth import WAVE_REF, wave_case
 
         c = wave_case(**kw)
         s = Session.create(self.tmp / "cal" / name)
@@ -874,7 +874,7 @@ class Shooter:
 
     def palettes(self) -> None:
         """The top row with the night switch off and on, and one page in the red palette."""
-        from starex_reduce.ui import retheme, theme
+        from starextractor.ui import retheme, theme
 
         win = self.window(self.tmp / "pal" / "2026-08-20")
         win.resize(W, H)
@@ -983,7 +983,7 @@ class Shooter:
 
     # ---- settings, run all, cancel ---------------------------------------------------------------------
     def misc(self, win) -> None:
-        from starex_reduce.ui.settings_dialog import SettingsDialog
+        from starextractor.ui.settings_dialog import SettingsDialog
 
         dlg = SettingsDialog(win.settings, win)
         dlg.show()
@@ -995,8 +995,8 @@ class Shooter:
         self.shot("22a_settings_path_missing", "Settings › Data locations with Published on a missing drive: ✗ and "
                                                "Create missing folders", dlg)
         dlg.reject()
-        from starex_reduce.core.settings import Settings
-        from starex_reduce.ui.data_locations import FirstRunDialog
+        from starextractor.core.settings import Settings
+        from starextractor.ui.data_locations import FirstRunDialog
 
         first = FirstRunDialog(Settings(self.tmp / "first_run.json"), win)
         first.show()
@@ -1004,7 +1004,7 @@ class Shooter:
         self.shot("22c_first_run_data_root", "First start: the data root dialog with the suggested folder and the "
                                              "layout it creates", first)
         first.reject()
-        from starex_reduce.ui.about import AboutDialog
+        from starextractor.ui.about import AboutDialog
 
         about = AboutDialog(win, animate=True)  # what the logo opens
         about.show()
@@ -1032,7 +1032,7 @@ class Shooter:
         try:
             commit = subprocess.run(["git", "rev-parse", "--short", "HEAD"], cwd=ROOT, capture_output=True,
                                     text=True, check=True).stdout.strip()
-            dirty = subprocess.run(["git", "status", "--porcelain", "--", "starex_reduce"], cwd=ROOT,
+            dirty = subprocess.run(["git", "status", "--porcelain", "--", "starextractor"], cwd=ROOT,
                                    capture_output=True, text=True).stdout.strip()
             commit += " (+ uncommitted app changes)" if dirty else ""
         except (OSError, subprocess.CalledProcessError):
@@ -1072,7 +1072,7 @@ def run_all(out: Path) -> int:
     in out/night_filter (one run for both)."""
     rc = run(out)
     rc |= run(out / "night", "night", out / "night_filter")
-    from starex_reduce.ui import retheme
+    from starextractor.ui import retheme
 
     retheme.switch("default")
     return rc

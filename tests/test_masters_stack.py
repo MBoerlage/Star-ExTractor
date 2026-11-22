@@ -7,12 +7,12 @@ import numpy as np
 import pytest
 import synth
 
-from starex_reduce.core import files_stage
-from starex_reduce.core.combine import sigma_clip_mean
-from starex_reduce.core.fitsio import read_header, read_image
-from starex_reduce.core.frames import BIAS, DARK, scan
-from starex_reduce.core.jobs import Cancelled, CancelToken, Ctx
-from starex_reduce.core.masters import (
+from starextractor.core import files_stage
+from starextractor.core.combine import sigma_clip_mean
+from starextractor.core.fitsio import read_header, read_image
+from starextractor.core.frames import BIAS, DARK, scan
+from starextractor.core.jobs import Cancelled, CancelToken, Ctx
+from starextractor.core.masters import (
     LightSettings,
     Master,
     MasterLibrary,
@@ -23,8 +23,8 @@ from starex_reduce.core.masters import (
     pick_calibration,
     zwo_gain_ratio,
 )
-from starex_reduce.core.session import Session
-from starex_reduce.core.stack import StackParams, run_stack
+from starextractor.core.session import Session
+from starextractor.core.stack import StackParams, run_stack
 
 SCALE = 0.1  # 384 × 216 frames
 
@@ -206,7 +206,7 @@ def test_stack_with_pedestal_match_stays_positive(tmp_path: Path, lib: MasterLib
 
 
 def _specs(lib: MasterLibrary, night: dict[str, list[Path]], drop_first: bool = False) -> list:
-    from starex_reduce.core.frames import LIGHT, load_frame
+    from starextractor.core.frames import LIGHT, load_frame
 
     out = []
     for image, key in (("Target", "target"), ("Reference", "reference")):
@@ -223,7 +223,7 @@ def test_unticking_a_frame_changes_stack_and_key(tmp_path: Path, lib: MasterLibr
     """Restacking with one sub fewer (Acquisition) changes the file, so the loaded pair goes out of date."""
     import time
 
-    from starex_reduce.core.pair import load_pair, read_stack
+    from starextractor.core.pair import load_pair, read_stack
 
     s = Session.create(tmp_path / "sess")
     files_stage.stack_job(Ctx(), _specs(lib, night), lib, s.folder)

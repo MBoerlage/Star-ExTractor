@@ -15,10 +15,10 @@ from PySide6.QtGui import QImage
 from PySide6.QtWidgets import QLabel
 from pytestqt.qtbot import QtBot
 
-from starex_reduce.core.session import Session
-from starex_reduce.ui import about, theme
-from starex_reduce.ui.about import CREDITS, ROLL_H, SPLASH, AboutDialog, CreditRoll
-from starex_reduce.ui.main_window import MainWindow
+from starextractor.core.session import Session
+from starextractor.ui import about, theme
+from starextractor.ui.about import CREDITS, ROLL_H, SPLASH, AboutDialog, CreditRoll
+from starextractor.ui.main_window import MainWindow
 
 ROOT = Path(__file__).resolve().parents[1]
 
@@ -110,7 +110,7 @@ def test_credits_are_the_approved_text() -> None:
 
 
 def _scanned_files() -> list[Path]:
-    files = [*ROOT.joinpath("starex_reduce").rglob("*.py"), *ROOT.joinpath("docs").glob("*.md"),
+    files = [*ROOT.joinpath("starextractor").rglob("*.py"), *ROOT.joinpath("docs").glob("*.md"),
              *ROOT.joinpath("tools").glob("*.py"), *ROOT.joinpath("packaging").glob("*.*"),
              ROOT / "README.md", ROOT / "THIRD_PARTY_NOTICES.md", ROOT / "pyproject.toml"]
     return [f for f in files if f.is_file() and f.suffix in (".py", ".md", ".toml", ".iss", ".spec", ".ps1")]
@@ -142,7 +142,7 @@ def test_every_line_fits_the_roll() -> None:
     roll's text area with 16 px to spare on each side. The About dialog has a fixed width (about.WIDTH), whatever
     the size of the main window."""
     code = ("import json, sys\nfrom PySide6.QtWidgets import QApplication\napp = QApplication(sys.argv[:1])\n"
-            "from PySide6.QtGui import QFontMetrics\nfrom starex_reduce.ui import about, theme\n"
+            "from PySide6.QtGui import QFontMetrics\nfrom starextractor.ui import about, theme\n"
             "theme.apply(app, 'default')\n"
             "print(json.dumps([[t, QFontMetrics(about._font(s)).horizontalAdvance(t)] for s, t in about.CREDITS "
             "if t]))\n")

@@ -16,16 +16,16 @@ from PySide6.QtCore import Qt
 from PySide6.QtGui import QImage
 from pytestqt.qtbot import QtBot
 
-from starex_reduce import app as app_mod
-from starex_reduce.ui import splash as sp
+from starextractor import app as app_mod
+from starextractor.ui import splash as sp
 
 ROOT = Path(__file__).resolve().parents[1]
-HEAVY = ("numpy", "scipy", "astropy", "pyqtgraph", "starex_reduce.ui.main_window")
+HEAVY = ("numpy", "scipy", "astropy", "pyqtgraph", "starextractor.ui.main_window")
 
 
 def _env(home: Path, **extra: str) -> dict[str, str]:
     env = {k: v for k, v in os.environ.items() if k != "PYTEST_CURRENT_TEST"}
-    env |= {"STAREX_REDUCE_HOME": str(home), "QT_QPA_PLATFORM": "offscreen", **extra}
+    env |= {"STAREXTRACTOR_HOME": str(home), "QT_QPA_PLATFORM": "offscreen", **extra}
     return env
 
 
@@ -46,7 +46,7 @@ def _render(s: sp.Splash, ratio: float = 1.0) -> np.ndarray:
 
 # 1. import order ----------------------------------------------------------------------------------------------------
 def test_nothing_heavy_is_imported_when_the_splash_is_on_screen(tmp_path: Path) -> None:
-    out = subprocess.run([sys.executable, "-m", "starex_reduce.app"], cwd=ROOT, capture_output=True, text=True,
+    out = subprocess.run([sys.executable, "-m", "starextractor.app"], cwd=ROOT, capture_output=True, text=True,
                          timeout=60, env=_env(tmp_path, STAREX_SPLASH_FORCE="1", STAREX_STARTUP_STOP="splash"))
     row = json.loads(out.stdout.strip().splitlines()[-1])
     assert row["splash"] is True
@@ -56,7 +56,7 @@ def test_nothing_heavy_is_imported_when_the_splash_is_on_screen(tmp_path: Path) 
 def test_entry_module_imports_only_sys_os_time_and_pyside6() -> None:
     import ast
 
-    tree = ast.parse((ROOT / "starex_reduce" / "app.py").read_text(encoding="utf-8"))
+    tree = ast.parse((ROOT / "starextractor" / "app.py").read_text(encoding="utf-8"))
     top = set()
     for node in tree.body:
         if isinstance(node, ast.Import):
@@ -109,15 +109,15 @@ def test_settings_are_read_cheaply_with_safe_fallbacks(tmp_path: Path) -> None:
 
 
 def test_settings_file_follows_the_app(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
-    from starex_reduce.core.settings import Settings
+    from starextractor.core.settings import Settings
 
-    monkeypatch.setenv("STAREX_REDUCE_HOME", str(tmp_path))
+    monkeypatch.setenv("STAREXTRACTOR_HOME", str(tmp_path))
     assert sp.settings_file() == Settings().path
 
 
 def test_settings_switch_turns_it_off(qtbot: QtBot) -> None:
-    from starex_reduce.core.settings import Settings
-    from starex_reduce.ui.settings_dialog import SettingsDialog
+    from starextractor.core.settings import Settings
+    from starextractor.ui.settings_dialog import SettingsDialog
 
     st = Settings()
     st["ui"] = {"palette": "night"}
@@ -226,7 +226,7 @@ def captured(monkeypatch: pytest.MonkeyPatch) -> list[sp.Splash]:
 
 def test_closes_when_the_window_is_shown_and_logs_the_timings(qtbot: QtBot, captured: list[sp.Splash],
                                                               monkeypatch: pytest.MonkeyPatch, tmp_path: Path) -> None:
-    from starex_reduce.ui import main_window, motion
+    from starextractor.ui import main_window, motion
 
     monkeypatch.setattr(motion, "reduced_motion", lambda: True)  # 5b: no fade with reduced motion
     log = tmp_path / "startup.jsonl"
@@ -253,7 +253,7 @@ def test_closes_when_the_window_is_shown_and_logs_the_timings(qtbot: QtBot, capt
 
 def test_closed_before_the_first_run_dialog(qtbot: QtBot, captured: list[sp.Splash],
                                             monkeypatch: pytest.MonkeyPatch) -> None:
-    from starex_reduce.ui import data_locations
+    from starextractor.ui import data_locations
 
     seen: list[bool] = []
 
@@ -268,7 +268,7 @@ def test_closed_before_the_first_run_dialog(qtbot: QtBot, captured: list[sp.Spla
 
 def test_startup_error_closes_it_before_the_message(qtbot: QtBot, captured: list[sp.Splash],
                                                     monkeypatch: pytest.MonkeyPatch) -> None:
-    from starex_reduce.ui import main_window
+    from starextractor.ui import main_window
 
     def boom(self, *a, **k):
         raise RuntimeError("cannot build the window")
@@ -283,7 +283,7 @@ def test_startup_error_closes_it_before_the_message(qtbot: QtBot, captured: list
 
 def test_startup_error_is_written_to_error_log(qtbot: QtBot, monkeypatch: pytest.MonkeyPatch,
                                                _isolated_home: Path) -> None:
-    from starex_reduce.ui import main_window
+    from starextractor.ui import main_window
 
     monkeypatch.setattr(main_window.MainWindow, "__init__", lambda self, *a, **k: (_ for _ in ()).throw(
         ValueError("broken settings")))
@@ -325,7 +325,7 @@ def test_startup_budget_on_the_real_platform(tmp_path: Path) -> None:
         log = tmp_path / "s.jsonl"
         env = _env(tmp_path, STAREX_SPLASH_FORCE="1", STAREX_STARTUP_LOG=str(log))
         env.pop("QT_QPA_PLATFORM")
-        subprocess.run([sys.executable, "-m", "starex_reduce.app", "--startup-time"], cwd=ROOT, env=env,
+        subprocess.run([sys.executable, "-m", "starextractor.app", "--startup-time"], cwd=ROOT, env=env,
                        capture_output=True, timeout=60, check=True)
         rows.append(json.loads(log.read_text(encoding="utf-8").splitlines()[-1]))
         log.unlink()
@@ -339,10 +339,10 @@ def test_startup_budget_on_the_real_platform(tmp_path: Path) -> None:
 # 7. packaging -------------------------------------------------------------------------------------------------------
 def test_spec_bundles_the_assets_and_the_bootloader_splash() -> None:
     spec = (ROOT / "packaging" / "starex_extractor.spec").read_text(encoding="utf-8")
-    assert '(str(PKG / "resources"), "starex_reduce/resources")' in spec  # splash.png and splash@2x.png
+    assert '(str(PKG / "resources"), "starextractor/resources")' in spec  # splash.png and splash@2x.png
     assert 'Splash(' in spec and '"splash.png"' in spec and "splash.binaries" in spec
     assert "STAREX_BOOT_SPLASH" in spec and "except (SystemExit, Exception)" in spec  # never fails the build
-    assert sp.IMAGES[1].parent.name == "resources" and sp.IMAGES[1].parent.parent.name == "starex_reduce"
+    assert sp.IMAGES[1].parent.name == "resources" and sp.IMAGES[1].parent.parent.name == "starextractor"
 
 
 def test_bootloader_splash_is_closed_only_in_the_frozen_build(monkeypatch: pytest.MonkeyPatch) -> None:
@@ -368,20 +368,20 @@ def test_command_line_modes_close_the_bootloader_splash_and_show_none(monkeypatc
 
 
 def test_frozen_version_from_bundled_metadata(monkeypatch: pytest.MonkeyPatch, tmp_path: Path) -> None:
-    import starex_reduce as pkg
+    import starextractor as pkg
 
-    (tmp_path / "starex_reduce.egg-info").mkdir()
-    (tmp_path / "starex_reduce.egg-info" / "PKG-INFO").write_text("Metadata-Version: 2.4\nName: starex-reduce\n"
+    (tmp_path / "starextractor.egg-info").mkdir()
+    (tmp_path / "starextractor.egg-info" / "PKG-INFO").write_text("Metadata-Version: 2.4\nName: starextractor\n"
                                                                   "Version: 7.8.9\n\nbody", encoding="utf-8")
     monkeypatch.setattr(sys, "_MEIPASS", str(tmp_path), raising=False)
     assert pkg._from_bundled_metadata() == "7.8.9"
-    (tmp_path / "starex_reduce-7.9.0.dist-info").mkdir()
-    (tmp_path / "starex_reduce-7.9.0.dist-info" / "METADATA").write_text("Version: 7.9.0\n", encoding="utf-8")
+    (tmp_path / "starextractor-7.9.0.dist-info").mkdir()
+    (tmp_path / "starextractor-7.9.0.dist-info" / "METADATA").write_text("Version: 7.9.0\n", encoding="utf-8")
     assert pkg._from_bundled_metadata() == "7.9.0"  # dist-info first
 
 
 def test_package_import_is_cheap() -> None:
-    out = subprocess.run([sys.executable, "-c", "import sys, starex_reduce; print('importlib.metadata' in "
+    out = subprocess.run([sys.executable, "-c", "import sys, starextractor; print('importlib.metadata' in "
                           "sys.modules, 'PySide6' in sys.modules)"], cwd=ROOT, capture_output=True, text=True,
                          timeout=60, check=True)
     assert out.stdout.split() == ["False", "False"]

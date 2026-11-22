@@ -7,12 +7,12 @@ import numpy as np
 import pytest
 from pytestqt.qtbot import QtBot
 
-from starex_reduce.core import wavelength as w
-from starex_reduce.core.fitsio import read_header, write_float32
-from starex_reduce.core.instrument import SEED_DISPERSION
-from starex_reduce.core.session import Session, Status
-from starex_reduce.ui import theme
-from starex_reduce.ui.main_window import MainWindow
+from starextractor.core import wavelength as w
+from starextractor.core.fitsio import read_header, write_float32
+from starextractor.core.instrument import SEED_DISPERSION
+from starextractor.core.session import Session, Status
+from starextractor.ui import theme
+from starextractor.ui.main_window import MainWindow
 
 SHIFT = 17.7  # px, like the nova night against the saved Gam Cas solution
 
@@ -67,7 +67,7 @@ def test_preview_run_and_profile_save(win: MainWindow, qtbot: QtBot) -> None:
     assert win.profile.dispersion["coeffs_nm"] != SEED_DISPERSION["coeffs_nm"]  # tonight's solution saved
     assert win.session.status["wavelength"].status == Status.VALID  # saving it did not make the step stale
     assert win.rail.by_id["wavelength"].status.startswith("5 lines · RMS")
-    from starex_reduce.core.wavelength_stage import specs_for
+    from starextractor.core.wavelength_stage import specs_for
 
     specs_for(win.session, ["Target", "Reference"], win.profile)  # the next run: the snapshot is kept
     win.session.refresh_status()
@@ -130,7 +130,7 @@ def test_axis_toggle_px_and_angstrom(win: MainWindow, qtbot: QtBot) -> None:
 
 
 def test_coefficient_help_is_a_popup(win: MainWindow, qtbot: QtBot) -> None:
-    from starex_reduce.ui.widgets.common import InfoButton
+    from starextractor.ui.widgets.common import InfoButton
 
     ws = _open(win, qtbot)
     info = ws.findChildren(InfoButton)

@@ -9,9 +9,9 @@ import numpy as np
 import pytest
 from pytestqt.qtbot import QtBot
 
-from starex_reduce.core.extract import auto_place, auto_place_in
-from starex_reduce.core.fitsio import _fits_card, read_header, write_float32
-from starex_reduce.core.stack_keys import COMMENTS
+from starextractor.core.extract import auto_place, auto_place_in
+from starextractor.core.fitsio import _fits_card, read_header, write_float32
+from starextractor.core.stack_keys import COMMENTS
 
 
 # 1 -------------------------------------------------------------------------------------------------------------
@@ -48,7 +48,7 @@ def test_auto_place_in_view_finds_the_star_not_the_broad_band() -> None:
 
 
 def test_extract_auto_place_uses_the_rows_in_view(qtbot: QtBot, monkeypatch: pytest.MonkeyPatch) -> None:
-    from starex_reduce.ui.screens import extract as ex_screen
+    from starextractor.ui.screens import extract as ex_screen
 
     seen: list = []
 
@@ -77,7 +77,7 @@ def test_extract_auto_place_uses_the_rows_in_view(qtbot: QtBot, monkeypatch: pyt
 def test_acquisition_redetect_window_follows_the_view() -> None:
     from types import SimpleNamespace
 
-    from starex_reduce.ui.screens.acquisition import AcquisitionScreen
+    from starextractor.ui.screens.acquisition import AcquisitionScreen
 
     view = {"r": (0.0, 1000.0)}
     fake = SimpleNamespace(view_mode=SimpleNamespace(index=lambda: 1), _shown_view={},
@@ -95,9 +95,9 @@ def geo(qtbot: QtBot, tmp_path: Path):
     import synth
     from PySide6.QtWidgets import QApplication
 
-    from starex_reduce.core.session import Session
-    from starex_reduce.ui import theme
-    from starex_reduce.ui.main_window import MainWindow
+    from starextractor.core.session import Session
+    from starextractor.ui import theme
+    from starextractor.ui.main_window import MainWindow
 
     theme.apply(QApplication.instance())
     s = Session.create(tmp_path / "sess")
@@ -116,7 +116,7 @@ def geo(qtbot: QtBot, tmp_path: Path):
 
 
 def test_level_line_is_blue_draggable_and_only_a_view(geo) -> None:
-    from starex_reduce.ui import theme
+    from starextractor.ui import theme
 
     w, gs = geo
     assert gs.level.isVisible() and gs.level.movable and gs.level.angle == 0
@@ -131,7 +131,7 @@ def test_level_line_is_blue_draggable_and_only_a_view(geo) -> None:
 
 
 def test_target_tilt_is_the_reference_first_guess(geo, qtbot: QtBot) -> None:
-    from starex_reduce.core.fitsio import read_header as rh
+    from starextractor.core.fitsio import read_header as rh
 
     w, gs = geo
     with qtbot.waitSignal(w.runner.finished, timeout=10000, check_params_cb=lambda slot, _r: slot == "geometry"):

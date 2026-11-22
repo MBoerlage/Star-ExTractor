@@ -8,10 +8,10 @@ import pytest
 from astropy.io import fits
 from pytestqt.qtbot import QtBot
 
-from starex_reduce.core.fitsio import write_float32
-from starex_reduce.core.session import Session
-from starex_reduce.ui import theme
-from starex_reduce.ui.main_window import MainWindow
+from starextractor.core.fitsio import write_float32
+from starextractor.core.session import Session
+from starextractor.ui import theme
+from starextractor.ui.main_window import MainWindow
 
 
 @pytest.fixture
@@ -80,7 +80,7 @@ def test_export_flow(win: MainWindow, qtbot: QtBot) -> None:
             '"Declination2000":"-22.42486","VariabilityType":"NA","MaxMag":"8.1 V","MinMag":"21.6: V"}}')
     import io
 
-    import starex_reduce.core.vsx as vsx_mod  # no network in tests: serve the verified answer shape
+    import starextractor.core.vsx as vsx_mod  # no network in tests: serve the verified answer shape
 
     class _Resp:
         def __enter__(self):
@@ -181,7 +181,7 @@ def test_site_defaults_to_frame_headers(win: MainWindow, qtbot: QtBot, tmp_path:
 
 
 def test_export_steps_collect_test_publish(win: MainWindow, qtbot: QtBot) -> None:
-    from starex_reduce.ui.rail import StepState
+    from starextractor.ui.rail import StepState
 
     win.show_tab("export")
     ex = win.ensure_export()
@@ -214,7 +214,7 @@ def test_export_steps_collect_test_publish(win: MainWindow, qtbot: QtBot) -> Non
 
 def _ex_state(ex, i: int):
     """What the rail shows for Export step i (the open step is current unless it has missing data)."""
-    from starex_reduce.ui.rail import StepState
+    from starextractor.ui.rail import StepState
 
     state = ex.step_states[i][0]
     return StepState.CURRENT if i == ex.step and state != StepState.MISSING else state

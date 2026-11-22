@@ -9,13 +9,13 @@ import pytest
 import synth
 from pytestqt.qtbot import QtBot
 
-from starex_reduce.core import geometry as g
-from starex_reduce.core.extract import Bands
-from starex_reduce.core.fitsio import read_header, write_float32
-from starex_reduce.core.jobs import Ctx
-from starex_reduce.core.session import Session, Status
-from starex_reduce.ui import theme
-from starex_reduce.ui.main_window import MainWindow
+from starextractor.core import geometry as g
+from starextractor.core.extract import Bands
+from starextractor.core.fitsio import read_header, write_float32
+from starextractor.core.jobs import Ctx
+from starextractor.core.session import Session, Status
+from starextractor.ui import theme
+from starextractor.ui.main_window import MainWindow
 
 
 @pytest.fixture

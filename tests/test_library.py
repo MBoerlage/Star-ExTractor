@@ -12,10 +12,10 @@ from pathlib import Path
 import pytest
 from pytestqt.qtbot import QtBot
 
-from starex_reduce.core import datalocs as dl
-from starex_reduce.core import library as lib
-from starex_reduce.core import logbook
-from starex_reduce.synth import write_library
+from starextractor.core import datalocs as dl
+from starextractor.core import library as lib
+from starextractor.core import logbook
+from starextractor.synth import write_library
 
 
 @pytest.fixture
@@ -28,9 +28,9 @@ def root(tmp_path: Path) -> tuple[Path, dict[str, Path]]:
 def win(qtbot: QtBot, root):
     from PySide6.QtWidgets import QApplication
 
-    from starex_reduce.core.session import Session
-    from starex_reduce.ui import theme
-    from starex_reduce.ui.main_window import MainWindow
+    from starextractor.core.session import Session
+    from starextractor.ui import theme
+    from starextractor.ui.main_window import MainWindow
 
     theme.apply(QApplication.instance())
     w = MainWindow(session=Session())
@@ -101,7 +101,7 @@ def test_grouping_unpaired_and_reference_candidates(root) -> None:
 def test_table_model_groups_and_marks_no_reference(win, qtbot: QtBot) -> None:
     from PySide6.QtCore import Qt
 
-    from starex_reduce.ui import theme
+    from starextractor.ui import theme
 
     lp = _open_library(win, qtbot)
     kinds = [k for k, _v in lp.model.items]
@@ -158,7 +158,7 @@ def test_notes_round_trip_keep_steps_and_sync(win, qtbot: QtBot) -> None:
 
 # 5 -------------------------------------------------------------------------------------------------------------
 def test_open_in_reduce_equals_files_load_pair(win, qtbot: QtBot, root, tmp_path: Path) -> None:
-    from starex_reduce.core.pair import read_stack
+    from starextractor.core.pair import read_stack
 
     r, made = root
     lp = _open_library(win, qtbot)
@@ -198,7 +198,7 @@ def test_promote_from_library(win, qtbot: QtBot) -> None:
     _select(lp, "2025-09-26_AGDra__HD145454")
     assert not lp.promote_btn.isEnabled() and "No AVSpec file" in lp.promote_btn.toolTip()
     # save an AVSpec file into the pair folder as Export › Publish does
-    from starex_reduce.synth import _spectrum_1d
+    from starextractor.synth import _spectrum_1d
 
     folder = lp.selected.folder
     avs = _spectrum_1d(folder / "export" / "_agdra_20250926_110_ABCD.fit", "AG Dra")
@@ -234,9 +234,9 @@ def test_create_pair_from_two_stacks(win, qtbot: QtBot, root) -> None:
 def test_empty_and_missing_data_root(qtbot: QtBot, tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
     from PySide6.QtWidgets import QApplication
 
-    from starex_reduce.core.session import Session
-    from starex_reduce.ui import theme
-    from starex_reduce.ui.main_window import MainWindow
+    from starextractor.core.session import Session
+    from starextractor.ui import theme
+    from starextractor.ui.main_window import MainWindow
 
     theme.apply(QApplication.instance())
     w = MainWindow(session=Session())
@@ -281,8 +281,8 @@ def test_thumbnail_in_a_worker_cached_and_state_persists(win, qtbot: QtBot, monk
     assert lp.selected.key == "2025-09-26_AGDra__HD145454"  # kept across a rescan
     st = win.settings["library"]
     assert st == {"selected": "2025-09-26_AGDra__HD145454", "filter": "reduced", "search": "dra"}
-    from starex_reduce.core.session import Session
-    from starex_reduce.ui.main_window import MainWindow
+    from starextractor.core.session import Session
+    from starextractor.ui.main_window import MainWindow
 
     w2 = MainWindow(session=Session())  # a restart: the same settings file
     qtbot.addWidget(w2)
@@ -295,8 +295,8 @@ def test_thumbnail_in_a_worker_cached_and_state_persists(win, qtbot: QtBot, monk
 def test_scan_speed_and_tab_open(tmp_path: Path, qtbot: QtBot, win) -> None:
     import numpy as np
 
-    from starex_reduce.core import naming
-    from starex_reduce.core.fitsio import write_float32
+    from starextractor.core import naming
+    from starextractor.core.fitsio import write_float32
 
     root = tmp_path / "Big"
     paths = dl.data_paths({"data_root": str(root)})

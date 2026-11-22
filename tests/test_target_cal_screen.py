@@ -11,13 +11,13 @@ from PySide6.QtGui import QImage
 from PySide6.QtWidgets import QApplication
 from pytestqt.qtbot import QtBot
 
-from starex_reduce.core import logbook
-from starex_reduce.core.fitsio import write_float32
-from starex_reduce.core.session import Session
-from starex_reduce.core.wavelength import Solution
-from starex_reduce.synth import WAVE_REF, wave_case
-from starex_reduce.ui import retheme, theme
-from starex_reduce.ui.main_window import MainWindow
+from starextractor.core import logbook
+from starextractor.core.fitsio import write_float32
+from starextractor.core.session import Session
+from starextractor.core.wavelength import Solution
+from starextractor.synth import WAVE_REF, wave_case
+from starextractor.ui import retheme, theme
+from starextractor.ui.main_window import MainWindow
 
 SHIFT = 13.5
 
@@ -132,7 +132,7 @@ def test_unticking_an_anchor_refits_and_mode_is_stored(win: MainWindow, qtbot: Q
 
 def test_card_in_night_palette_and_marker_shapes(win: MainWindow, qtbot: QtBot) -> None:
     ws = screen(win, qtbot)
-    from starex_reduce.ui.screens.wavelength_target import SYMBOL
+    from starextractor.ui.screens.wavelength_target import SYMBOL
 
     assert len(set(SYMBOL.values())) == 4  # every line type its own shape
     syms = {it.opts["symbol"] for it in ws.cal_card.res_items}

@@ -10,9 +10,9 @@ import pytest
 import synth
 from scipy import ndimage
 
-from starex_reduce.core import extract as ex
-from starex_reduce.core.extract import Band, Bands, auto_place, extract
-from starex_reduce.synth import Donut, donut_total, make_donut, write_donut
+from starextractor.core import extract as ex
+from starextractor.core.extract import Band, Bands, auto_place, extract
+from starextractor.synth import Donut, donut_total, make_donut, write_donut
 
 
 def old_auto_place(img: np.ndarray, sky_width: int = ex.SKY_WIDTH) -> Bands:
@@ -150,8 +150,8 @@ def test_extraction_of_the_donut_sums_all_its_flux() -> None:
 
 # 8 -------------------------------------------------------------------------------------------------------------
 def test_full_frame_sub_detection_timing_and_handover(tmp_path: Path) -> None:
-    from starex_reduce.core import subs as sb
-    from starex_reduce.core.stack_keys import rows1_of, sx_cards
+    from starextractor.core import subs as sb
+    from starextractor.core.stack_keys import rows1_of, sx_cards
 
     path = write_donut(tmp_path / "donut.fits")
     rows = sb.detect_rows(path, tilt_deg=0.0)
@@ -170,10 +170,10 @@ def test_full_frame_sub_detection_timing_and_handover(tmp_path: Path) -> None:
 def test_acquisition_mode_chip_and_sets_file(qtbot, tmp_path: Path) -> None:
     from PySide6.QtWidgets import QApplication
 
-    from starex_reduce.core import acq_sets
-    from starex_reduce.core.session import Session
-    from starex_reduce.ui import theme
-    from starex_reduce.ui.main_window import MainWindow
+    from starextractor.core import acq_sets
+    from starextractor.core.session import Session
+    from starextractor.ui import theme
+    from starextractor.ui.main_window import MainWindow
 
     theme.apply(QApplication.instance())
     path = write_donut(tmp_path / "subs" / "donut_00001.fits")

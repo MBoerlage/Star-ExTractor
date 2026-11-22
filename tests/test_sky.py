@@ -13,8 +13,8 @@ from pathlib import Path
 import numpy as np
 import pytest
 
-from starex_reduce.core import location as loc
-from starex_reduce.core import sky
+from starextractor.core import location as loc
+from starextractor.core import sky
 
 MCDONALD = (30.6714, -104.0225)  # McDonald Observatory, a public site
 TZ = timezone(timedelta(hours=-6))  # fixed, so the expected local times do not depend on the machine

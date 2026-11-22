@@ -10,10 +10,10 @@ import synth
 from PySide6.QtCore import QPointF, Qt
 from pytestqt.qtbot import QtBot
 
-from starex_reduce.core.fitsio import read_header, write_float32
-from starex_reduce.core.session import Session, Status
-from starex_reduce.ui import theme
-from starex_reduce.ui.main_window import MainWindow
+from starextractor.core.fitsio import read_header, write_float32
+from starextractor.core.session import Session, Status
+from starextractor.ui import theme
+from starextractor.ui.main_window import MainWindow
 
 SCALE = 0.25  # 960 × 540
 
@@ -103,7 +103,7 @@ def test_draw_angle_independent_of_zoom(win: MainWindow, qtbot: QtBot, zoom: int
     vb.mouseDragEvent(_Drag(vb, a, a, True, False))
     vb.mouseDragEvent(_Drag(vb, a, b, False, True))
     assert len(drawn) == 1
-    from starex_reduce.core.geometry import drawn_angle
+    from starextractor.core.geometry import drawn_angle
 
     assert drawn_angle(*drawn[0]) == pytest.approx(-0.67, abs=0.01)
 
@@ -126,7 +126,7 @@ def test_views_do_not_recompute(win: MainWindow, qtbot: QtBot) -> None:
 def slant_win(qtbot: QtBot, tmp_path: Path) -> MainWindow:
     from PySide6.QtWidgets import QApplication
 
-    from starex_reduce.synth import slanted_frame
+    from starextractor.synth import slanted_frame
 
     theme.apply(QApplication.instance())
     s = Session.create(tmp_path / "sess")
@@ -194,7 +194,7 @@ def test_set_values_saves_geometry_and_reuses_it(win: MainWindow, qtbot: QtBot) 
     prof = win.profile
     assert prof.tilt_deg == -0.67 and prof.tilt_date
     assert "Use saved geometry · " in gs.use_saved.text()
-    from starex_reduce.core.instrument import InstrumentProfile
+    from starextractor.core.instrument import InstrumentProfile
 
     assert InstrumentProfile.load().tilt_deg == -0.67  # persisted in the (test) app folder
     with qtbot.waitSignal(win.runner.finished, timeout=15000,

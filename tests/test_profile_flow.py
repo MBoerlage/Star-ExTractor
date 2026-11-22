@@ -7,17 +7,17 @@ from pathlib import Path
 import numpy as np
 import synth
 
-from starex_reduce.core import extract_stage as es
-from starex_reduce.core.extract import Band
-from starex_reduce.core.geometry import spectrum_row
-from starex_reduce.core.session import Session
+from starextractor.core import extract_stage as es
+from starextractor.core.extract import Band
+from starextractor.core.geometry import spectrum_row
+from starextractor.core.session import Session
 
 P = synth.scaled(synth.PRESETS["nova"], 0.25)
 
 
 def _straight(shift: int = 0) -> np.ndarray:
-    from starex_reduce.core import geometry as g
-    from starex_reduce.core.jobs import Ctx
+    from starextractor.core import geometry as g
+    from starextractor.core.jobs import Ctx
 
     img = g.correct(synth.make_light(P, "reference").astype(np.float32), g.GeometryParams(), Ctx()).image
     return np.roll(img, shift, axis=0)
@@ -54,7 +54,7 @@ def test_new_image_starts_from_acquisition_rows_then_default_rows(tmp_path: Path
 
 
 def test_acquisition_uses_the_saved_tilt_in_detector_pixels(qtbot, tmp_path: Path) -> None:
-    from starex_reduce.ui.main_window import MainWindow
+    from starextractor.ui.main_window import MainWindow
 
     w = MainWindow(session=Session.create(tmp_path / "s"))
     qtbot.addWidget(w)
@@ -71,8 +71,8 @@ def test_acquisition_uses_the_saved_tilt_in_detector_pixels(qtbot, tmp_path: Pat
 
 
 def test_crop_and_norm_are_kept_for_the_next_session(qtbot, tmp_path: Path) -> None:
-    from starex_reduce.core.instrument import InstrumentProfile
-    from starex_reduce.ui.main_window import MainWindow
+    from starextractor.core.instrument import InstrumentProfile
+    from starextractor.ui.main_window import MainWindow
 
     w = MainWindow(session=Session.create(tmp_path / "s"))
     qtbot.addWidget(w)

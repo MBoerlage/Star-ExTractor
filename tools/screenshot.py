@@ -128,14 +128,14 @@ def main() -> int:
     os.environ["QT_ENABLE_HIGHDPI_SCALING"] = "0"  # 1:1 pixels, comparable with the mockups
     home = Path(tempfile.gettempdir()) / "starex_shot_home"
     shutil.rmtree(home, ignore_errors=True)
-    os.environ["STAREX_REDUCE_HOME"] = str(home)
+    os.environ["STAREXTRACTOR_HOME"] = str(home)
 
     from PySide6.QtGui import QColor, QImage, QPainter
     from PySide6.QtWidgets import QApplication
 
-    from starex_reduce.core.session import Session
-    from starex_reduce.ui import theme
-    from starex_reduce.ui.main_window import MainWindow
+    from starextractor.core.session import Session
+    from starextractor.ui import theme
+    from starextractor.ui.main_window import MainWindow
 
     app = QApplication.instance() or QApplication([])
     theme.apply(app, a.palette or "default")

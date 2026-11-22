@@ -4,10 +4,10 @@ from __future__ import annotations
 import pytest
 from pytestqt.qtbot import QtBot
 
-from starex_reduce.core.session import Session, Status
-from starex_reduce.ui import theme
-from starex_reduce.ui.main_window import MainWindow
-from starex_reduce.ui.rail import StepState
+from starextractor.core.session import Session, Status
+from starextractor.ui import theme
+from starextractor.ui.main_window import MainWindow
+from starextractor.ui.rail import StepState
 
 
 @pytest.fixture
@@ -139,8 +139,8 @@ def test_keyboard_shortcuts(win: MainWindow, qtbot: QtBot) -> None:
 
 
 def test_settings_dialog_validates_and_saves(win: MainWindow, tmp_path) -> None:
-    from starex_reduce.core.vsx import DEFAULT_URL
-    from starex_reduce.ui.settings_dialog import SettingsDialog
+    from starextractor.core.vsx import DEFAULT_URL
+    from starextractor.ui.settings_dialog import SettingsDialog
 
     dlg = SettingsDialog(win.settings, win)
     assert dlg.vsx.text() == DEFAULT_URL
@@ -184,8 +184,8 @@ def test_window_geometry_saved_and_errors_reported(qtbot: QtBot, tmp_path) -> No
 def test_unexpected_error_goes_to_log_and_error_file(win: MainWindow) -> None:
     import sys
 
-    from starex_reduce.app import install_excepthook
-    from starex_reduce.core.settings import app_dir
+    from starextractor.app import install_excepthook
+    from starextractor.core.settings import app_dir
 
     old = sys.excepthook
     win._quiet_errors = True
@@ -211,7 +211,7 @@ def test_top_row_and_rail_fit_at_minimum_width(win: MainWindow, qtbot: QtBot) ->
         assert b.width() >= b.sizeHint().width()  # label never elided
 
 def test_tolerances_on_pre_processing_page(win: MainWindow) -> None:
-    from starex_reduce.ui.settings_dialog import SettingsDialog
+    from starextractor.ui.settings_dialog import SettingsDialog
 
     assert not hasattr(SettingsDialog(win.settings, win), "gain")
     page = win.ensure_acquisition().prep

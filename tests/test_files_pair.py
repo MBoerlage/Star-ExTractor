@@ -14,20 +14,20 @@ import pytest
 from astropy.io import fits
 from pytestqt.qtbot import QtBot
 
-from starex_reduce.core import acq_sets
-from starex_reduce.core import pair as pr
-from starex_reduce.core import stack_keys as sk
-from starex_reduce.core.files_stage import spec_from, stack_job
-from starex_reduce.core.fitsio import read_header, write_float32
-from starex_reduce.core.frames import BIAS, DARK, LIGHT, load_frame, scan
-from starex_reduce.core.jobs import Ctx
-from starex_reduce.core.masters import MasterLibrary, Tolerances, build_master, group_for_masters
-from starex_reduce.core.session import Session, Status
-from starex_reduce.core.subs import detect_rows
-from starex_reduce.synth import write_example
-from starex_reduce.ui import theme
-from starex_reduce.ui.main_window import MainWindow
-from starex_reduce.ui.rail import StepState
+from starextractor.core import acq_sets
+from starextractor.core import pair as pr
+from starextractor.core import stack_keys as sk
+from starextractor.core.files_stage import spec_from, stack_job
+from starextractor.core.fitsio import read_header, write_float32
+from starextractor.core.frames import BIAS, DARK, LIGHT, load_frame, scan
+from starextractor.core.jobs import Ctx
+from starextractor.core.masters import MasterLibrary, Tolerances, build_master, group_for_masters
+from starextractor.core.session import Session, Status
+from starextractor.core.subs import detect_rows
+from starextractor.synth import write_example
+from starextractor.ui import theme
+from starextractor.ui.main_window import MainWindow
+from starextractor.ui.rail import StepState
 
 T_RA, T_DEC, R_RA, R_DEC = 240.42, 66.80, 241.10, 67.50  # about 0.8° apart
 
@@ -171,9 +171,9 @@ def test_load_pair_feeds_geometry_and_extract(win: MainWindow, qtbot: QtBot, sta
     assert any("Select: pair loaded: AG Dra + HD 145454" in ln for ln in win.session.log_lines)
     assert win.session.inputs["target"]["name"] == "AG Dra"
     assert win.session.inputs["reference"]["coords"]["ra"].startswith("16 04")
-    from starex_reduce.core.extract_stage import default_offsets
-    from starex_reduce.core.geometry_stage import geometry_job
-    from starex_reduce.core.geometry_stage import specs_for as geometry_specs
+    from starextractor.core.extract_stage import default_offsets
+    from starextractor.core.geometry_stage import geometry_job
+    from starextractor.core.geometry_stage import specs_for as geometry_specs
 
     specs, problems = geometry_specs(win.session, ["Target", "Reference"], win.profile, win.library)
     assert not problems and [s.src for s in specs] == [folder / "work/Target_S.fit", folder / "work/Reference_S.fit"]
@@ -241,7 +241,7 @@ def test_row_keywords_convention_and_round_trip(stacks: Path, night: dict, tmp_p
 def test_header_only_row_update_from_acquisition(qtbot: QtBot, tmp_path: Path, night: dict) -> None:
     from PySide6.QtWidgets import QApplication
 
-    from starex_reduce.core import subs as sb
+    from starextractor.core import subs as sb
 
     theme.apply(QApplication.instance())
     w = MainWindow(session=Session.create(tmp_path / "sess"))
@@ -288,7 +288,7 @@ def test_header_only_row_update_from_acquisition(qtbot: QtBot, tmp_path: Path, n
 
 # 7 -------------------------------------------------------------------------------------------------------------
 def test_sx_block_never_reaches_later_or_exported_headers(stacks: Path, tmp_path: Path) -> None:
-    from starex_reduce.core import export as ex
+    from starextractor.core import export as ex
 
     h = read_header(stacks / "Target_S.fit")
     assert any(sk.is_sx(k) for k in h)
@@ -346,7 +346,7 @@ def test_pairs_list_survives_reload_and_old_files_open(tmp_path: Path, stacks: P
     o = Session.load(old)
     assert o.inputs["target"]["name"] == "N" and pr.active_pair(o) is None and o.compute_keys()["files"]["Target"]
     # old settings with the keys of the removed Files options load too
-    from starex_reduce.core.settings import Settings
+    from starextractor.core.settings import Settings
 
     sp = tmp_path / "settings.json"
     assert Settings(sp)["masters_dir"] is None and Settings(sp).masters_dir().name == "Masters"  # key migrated

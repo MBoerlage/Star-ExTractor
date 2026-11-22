@@ -18,7 +18,7 @@ This replaces the decision of 2026-11-17 ("no red night palette, no night-mode t
 
 ## Tokens
 
-Every colour of the UI comes from `starex_reduce/ui/theme.py` (`PALETTES`). The module attributes (`theme.BG`,
+Every colour of the UI comes from `starextractor/ui/theme.py` (`PALETTES`). The module attributes (`theme.BG`,
 `theme.AMBER`, …) hold the active palette; `theme.token("accent")` reads a token by its name below.
 
 | Token (this doc) | Attribute | default | night | red |
@@ -155,5 +155,5 @@ QInputDialog, no green or blue in night and red).
 
 ## Help me (2026-11-21)
 The top row has a small **Help me** button (a ? icon in `text`, the pill style of the pair chip) and F1: a window
-beside the app with the workflow guide (`starex_reduce/resources/help.md`), contents and find. Styled from tokens
+beside the app with the workflow guide (`starextractor/resources/help.md`), contents and find. Styled from tokens
 (`QTextBrowser#helpText`, `QListWidget#helpContents`).
