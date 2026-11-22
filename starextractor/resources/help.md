@@ -32,7 +32,7 @@ Click any step to open it.
 - `Processed\<night>_<Target>__<Reference>\`: one folder per reduced pair (logbook, 1D spectra, exports).
 - `Published\<year>\…`: AVSpec files you promoted as final.
 
-You can change these later in **⚙ Settings › Data locations**. A missing drive is reported at start-up; nothing is
+You can change these later in **Settings › Data locations** (the gear at the top right, Ctrl+,). A missing drive is reported at start-up; nothing is
 written elsewhere.
 
 **Masters.** Before you stack, add calibration frames to the master library: **Acquisition › Pre Processing

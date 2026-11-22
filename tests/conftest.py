@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import os
 import sys
+import time
 from pathlib import Path
 
 import pytest
@@ -9,6 +10,15 @@ import pytest
 ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT / "tools"))
 os.environ.setdefault("QT_QPA_PLATFORM", "offscreen")
+# The Plan screen shows times in the computer's time zone; the tests use McDonald Observatory (US Central), so the
+# test run is pinned to that zone and gives the same result on any machine (GitHub's runners are on UTC).
+os.environ["TZ"] = "CST6CDT"
+if hasattr(time, "tzset"):
+    time.tzset()
+else:  # Windows: the C runtime caches the zone at its first use; re-read TZ
+    import ctypes
+
+    ctypes.cdll.ucrtbase._tzset()
 
 EXAMPLE = ROOT / "example_spectra" / "novasrg2026"
 PROJECTS = ROOT.parent / "projects"

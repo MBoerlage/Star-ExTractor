@@ -196,6 +196,11 @@ def transit(ra_deg: float, dec_deg: float, lat_deg: float, lon_deg: float, near_
 
 
 # ---- the plan -----------------------------------------------------------------------------------------------------
+def _at(clock: datetime, tz=None) -> datetime:
+    """A naive clock time read in `tz` (not converted from the computer's zone); the computer's zone when None."""
+    return clock.astimezone() if tz is None else clock.replace(tzinfo=tz)
+
+
 @dataclass
 class Window:
     start: datetime  # aware, local
@@ -204,12 +209,12 @@ class Window:
     @classmethod
     def from_local(cls, evening: datetime | None, start: time, end: time, tz=None) -> Window:
         """A window on the evening `evening` (a date) from `start` to `end`, crossing midnight when end <= start;
-        in the computer's time zone (astimezone)."""
+        as clock times in `tz` (the computer's time zone when None)."""
         day = (evening or datetime.now()).date()
-        s = datetime.combine(day, start).astimezone(tz)
-        e = datetime.combine(day, end).astimezone(tz)
+        s = _at(datetime.combine(day, start), tz)
+        e = _at(datetime.combine(day, end), tz)
         if e <= s:
-            e = datetime.combine(day + timedelta(days=1), end).astimezone(tz)
+            e = _at(datetime.combine(day + timedelta(days=1), end), tz)
         return cls(s, e)
 
 
@@ -277,7 +282,7 @@ def compute(lat: float, lon: float, window: Window, min_alt: float = 25.0, ra: f
 def astronomical_night(lat: float, lon: float, evening: datetime, tz=None) -> tuple[datetime, datetime] | None:
     """Sun at -18° on the evening `evening` (local): (end of evening twilight, start of morning twilight), or None
     when the Sun does not go that low (or does not come back up) between local noon and the next noon."""
-    noon = datetime.combine(evening.date(), time(12, 0)).astimezone(tz)
+    noon = _at(datetime.combine(evening.date(), time(12, 0)), tz)
     unix = np.arange(noon.timestamp(), noon.timestamp() + 86400.0 + 1.0, 60.0)
     ra, dec = sun_radec(unix)
     alt, _ = altaz(ra, dec, lat, lon, unix)
