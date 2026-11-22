@@ -1,0 +1,40 @@
+name: Bug report
+description: Something does not work as expected
+labels: [bug]
+body:
+  - type: input
+    id: version
+    attributes:
+      label: App version
+      description: About window, or `StarExtractor.exe --version`
+      placeholder: "0.1.0"
+    validations:
+      required: true
+  - type: input
+    id: windows
+    attributes:
+      label: Windows version
+      description: Settings -> System -> About (for example "Windows 11 Pro 24H2")
+    validations:
+      required: true
+  - type: textarea
+    id: what
+    attributes:
+      label: What happened, and what did you expect?
+      description: The steps you took, the screen and the step you were on.
+    validations:
+      required: true
+  - type: textarea
+    id: log
+    attributes:
+      label: Log file
+      description: >
+        Attach error.log from %APPDATA%\StarExtractor\ (the error window has "Open log folder"), or paste its last
+        lines. Remove anything you do not want public, such as your observer code.
+      render: text
+  - type: checkboxes
+    id: selftest
+    attributes:
+      label: Self-test
+      options:
+        - label: I ran `StarExtractor.exe --selftest` and it printed `self-test PASSED`

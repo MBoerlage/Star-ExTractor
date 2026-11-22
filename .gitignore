@@ -1,0 +1,42 @@
+# Python / tools
+.venv/
+venv/
+__pycache__/
+*.pyc
+*.egg-info/
+.pytest_cache/
+.ruff_cache/
+*.log
+
+# build output (packaging/build.ps1)
+build/
+dist/
+installer_output/
+*.spec.bak
+build_log.txt
+selftest_out.txt
+selftest_err.txt
+
+# sessions, exports and local settings (they live outside the repo; never commit them)
+sessions/
+session.json
+export/
+settings.json
+instrument_starex_lr.json
+vsx_cache.json
+masters/
+
+# large real data stays on disk only (see docs/EXAMPLE_NOVA.md for the download)
+example_spectra/
+
+# screenshots: only screenshots/latest (README and review) is kept
+screenshots/*
+!screenshots/latest/
+
+# local tooling
+.claude/
+BUILD_PROMPT.md
+CLAUDE.md
+*.png.bak
+Silver Chrome Cosmic Splash.png
+Prism casting a horizontal stellar spectrum.png
