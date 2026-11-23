@@ -11,7 +11,7 @@ import numpy as np
 
 from starextractor import APP_NAME
 
-from . import targetcal
+from . import devflags, targetcal
 from .fitsio import STRUCTURAL, read_header, write_float32
 from .instrument import InstrumentProfile
 from .jobs import Ctx
@@ -21,9 +21,27 @@ from .skylines import SkyResult, find_sky_lines
 from .target_wave import Adjust, TargetCal, auto_match, target_calibration
 from .wavelength import BALMER, Calibration, Solution, calibrate, linear_grid, resample
 
+CENTRE_DEFAULT = "auto"  # the line-centre method (docs/investigations/wavelength_2025-10-02_omiand.md)
+CENTRE_LABEL = {"auto": "M0 v0.2 (Gaussian core, re-centred)", "voigt": "pseudo-Voigt fit", "gauss": "Gaussian fit",
+                "lorentz": "Lorentzian fit", "minimum": "parabola at the minimum", "v01": "v0.1 Gaussian"}
+
+
+def set_centre_method(method: str | None) -> None:
+    """auto | voigt | gauss | lorentz | minimum | v01 (settings.json "wavelength": {"centre_method": ...}). It is
+    part of the step's parameters, so changing it re-runs the step and marks the later steps out of date."""
+    devflags.centre_method = method
+
+
+def centre_method() -> str:
+    from .wavelength import CENTRE_METHODS
+
+    m = devflags.centre_method
+    return m if m in CENTRE_METHODS else CENTRE_DEFAULT
+
 # Grid start 3900 Å keeps the decided publishing crop (3900–7700 Å); BASS used 4000 Å.
 DEFAULTS: dict[str, Any] = {"mode": "refine", "order": None, "lines": list(BALMER), "manual": {},
-                            "allow_exact": False, "grid_start": 3900.0, "grid_end": 8000.0, "fixed": None}
+                            "allow_exact": False, "grid_start": 3900.0, "grid_end": 8000.0, "fixed": None,
+                            "centre": CENTRE_DEFAULT, "nofit": [], "mode_user": False}
 DROP_KEYS = {"CRVAL1", "CDELT1", "CRPIX1", "CTYPE1", "CUNIT1", "CD1_1"}
 
 
@@ -31,8 +49,15 @@ def params_of(session: Session, profile: InstrumentProfile) -> dict[str, Any]:
     """Params with defaults. `saved` is a snapshot of the profile's solution taken when a run starts,
     so saving tonight's solution to the profile afterwards does not make this step stale."""
     p = {**DEFAULTS, **session.params["wavelength"]}
+    p["centre"] = centre_method()
+    disp = profile.dispersion
     if not p.get("saved"):
-        p["saved"] = list(profile.dispersion["coeffs_nm"])
+        p["saved"] = list(disp["coeffs_nm"])
+    if not p.get("saved_source"):  # where the prior came from (pair, date), shown with its check
+        same = [round(c, 12) for c in p["saved"]] == [round(c, 12) for c in disp.get("coeffs_nm", [])]
+        src = str(disp.get("source", "")).split(",")[0].strip()
+        p["saved_source"] = (f"{src}, saved {disp.get('date', '?')}" if same and src else
+                             "the instrument preset" if same else "an earlier saved solution")
     return p
 
 
@@ -98,9 +123,16 @@ def target_solution(ref: Solution, ref_prof: np.ndarray, tgt_prof: np.ndarray, p
     old behaviour (the stored adjustment)."""
     cp = target_cal_params(p)
     adj = target_adjust(p)
+    reset = None
+    if adj.stale_for(ref):  # never carry a manual shift over to a new reference solution
+        reset = {"shift": adj.shift, "text": f"Manual target shift {adj.shift:+.2f} px reset: it was set for "
+                 + ("a reference solution from before this check" if adj.ref_hb is None else
+                    "a different reference solution") + "; set it again if the target still needs it"}
+        adj.shift, adj.source, adj.ref_hb = 0.0, "", None
     old = target_calibration(ref, tgt_prof, adj)
     data = describe_target(old, ref, len(tgt_prof))
-    history: list[str] = []
+    data["manual_reset"] = reset
+    history: list[str] = [f"target wavelength: {reset['text']}"] if reset else []
     if cp["mode"] == "manual" or ti is None:
         data["cal"] = None
         return old.solution, data, history
@@ -126,7 +158,7 @@ def target_solution(ref: Solution, ref_prof: np.ndarray, tgt_prof: np.ndarray, p
                  "shift_a": (fit.s + extra) * disp, "source": "target calibration", "points": [], "rms": fit.rms_a,
                  "total": None})
     data["cal"] = cal
-    history = targetcal.history(fit, ref)
+    history = history + targetcal.history(fit, ref)
     if extra:
         history.append(f"target wavelength: manual override {extra:+.2f} px applied after the fit")
     return sol, data, history
@@ -145,7 +177,9 @@ def describe_target(tc: TargetCal, ref: Solution, n: int) -> dict[str, Any]:
 def target_log(t: dict[str, Any]) -> str:
     cal = t.get("cal")
     if cal and cal.get("ok") and t["mode"] == "fit":
-        return f"Target: {cal['summary']}" + (f"; {cal['delta']['text']}" if cal.get("delta") else "")
+        extra = cal.get("override_px")
+        return (f"Target: {cal['summary']}" + (f"; {cal['delta']['text']}" if cal.get("delta") else "")
+                + (f"; manual shift {extra:+.2f} px on top (total {t['shift']:+.2f} px)" if extra else ""))
     if t["mode"] == "reference":
         return "Target: the reference solution, unchanged"
     how = {"manual": "set manually", "marker": "set manually (marker dragged)", "auto-match": "set by auto-match",
@@ -165,22 +199,80 @@ def match_job(ctx: Ctx, ref_src: Path, tgt_src: Path, p: dict[str, Any]) -> dict
             "reason": m.reason, "text": m.text(), "features": [(f.name, f.shift_px, f.kind) for f in m.features]}
 
 
+_CAL_CACHE: dict[str, Calibration] = {}
+
+
 def calibrate_profile(profile_ref: np.ndarray, p: dict[str, Any]) -> Calibration:
+    """The reference solution, cached on the profile and the reference's own parameters: edits on the Target tab
+    (which change only `per_image`) do not repeat the pattern search and the line fits (about 0.7 s)."""
+    import hashlib
+    import json
+
+    ref_params = {k: v for k, v in p.items() if k != "per_image"}
+    key = hashlib.sha1(np.ascontiguousarray(profile_ref, dtype=np.float64).tobytes()
+                       + json.dumps(ref_params, sort_keys=True, default=str).encode("utf-8")).hexdigest()
+    cal = _CAL_CACHE.get(key)
+    if cal is None:
+        cal = _calibrate_profile(profile_ref, p)
+        if len(_CAL_CACHE) > 16:
+            _CAL_CACHE.clear()
+        _CAL_CACHE[key] = cal
+    return cal
+
+
+def _calibrate_profile(profile_ref: np.ndarray, p: dict[str, Any]) -> Calibration:
     fixed = Solution(list(p["fixed"])) if p.get("fixed") else None
     return calibrate(profile_ref, Solution(list(p["saved"])), p["mode"], p["lines"], p["order"],
-                     {k: float(v) for k, v in p["manual"].items()}, False, bool(p["allow_exact"]), fixed)
+                     {k: float(v) for k, v in p["manual"].items()}, False, bool(p["allow_exact"]), fixed,
+                     centre=str(p.get("centre") or CENTRE_DEFAULT), nofit=list(p.get("nofit") or []),
+                     mode_user=bool(p.get("mode_user")), prior_source=str(p.get("saved_source") or ""))
 
 
 def describe(cal: Calibration) -> dict[str, Any]:
     """Everything the screen shows, as plain data."""
-    errs = cal.fit.errors_a if cal.fit is not None else np.zeros(len(cal.points))
+    sol = cal.solution
+    used = [q for q in cal.points if q.used]
+
+    def err(q) -> float:
+        return float(sol.angstrom(q.pixel)) - q.lam_a
+
+    active = "shift" if cal.mode == "refine" else "free" if cal.mode == "free" else "fixed"
+    label = cal.fits.get(active, {}).get("label", "Pasted coefficients")
     return {
-        "mode": cal.mode, "coeffs": list(cal.solution.coeffs_nm), "shift": cal.shift_px,
-        "points": [{"line": q.line, "lam": q.lam_a, "pixel": q.pixel, "error": float(e), "manual": q.manual}
-                   for q, e in zip(cal.points, errs, strict=True)],
-        "total": cal.fit.total_a if cal.fit else None, "rms": cal.fit.rms_a if cal.fit else None,
+        "mode": cal.mode, "coeffs": list(sol.coeffs_nm), "shift": cal.shift_px,
+        "points": [{"line": q.line, "lam": q.lam_a, "pixel": q.pixel, "error": err(q), "manual": q.manual,
+                    "err_px": q.err_px, "err_a": q.err_px * abs(sol.dispersion_a(q.pixel)) if q.err_px == q.err_px
+                    else float("nan"), "fwhm_px": q.fwhm_px, "flags": list(q.flags), "rejected": q.rejected,
+                    "weight": q.weight, "fit_x": q.fit_x, "fit_y": q.fit_y}
+                   for q in sorted(cal.points, key=lambda r: r.lam_a)],
+        "total": float(np.sqrt(np.sum([err(q) ** 2 for q in used]))) if used else None,
+        "rms": cal.fit.rms_a if cal.fit else None, "n_used": len(used), "label": label,
         "fwhm": cal.fwhm_a, "R": cal.resolving_power, "fwhm_line": cal.fwhm_line, "messages": cal.messages,
+        "status": cal.status, "reason": cal.reason, "mode_reason": cal.mode_reason, "prior": cal.prior,
+        "search": cal.search, "unmatched": cal.unmatched, "fits": cal.fits, "centre": cal.centre_method,
+        "repaired": list(cal.repaired),
     }
+
+
+def calibration_log(cal: Calibration, data: dict[str, Any]) -> list[str]:
+    """Log lines whose numbers say which fit they belong to (the Solution card and the table use the same labels)."""
+    out = [f"Calibration: {cal.prior.get('message', '')}"] if cal.prior.get("message") else []
+    if cal.mode_reason:
+        out.append(f"Calibration: {cal.mode_reason}")
+    pts = " ".join(q.line for q in cal.points if q.used)
+    active = "shift" if cal.mode == "refine" else "free" if cal.mode == "free" else ""
+    for key in ("free", "shift"):
+        f = cal.fits.get(key)
+        if f is None:
+            continue
+        extra = f", shift {f['shift']:+.2f} px from the saved solution" if key == "shift" else ""
+        out.append(f"{f['label']}{' (used)' if key == active else ''}: order {f['order']}, {f['n']} lines, "
+                   f"RMS {f['rms']:.3f} Å{extra}")
+    method = CENTRE_LABEL.get(cal.centre_method, cal.centre_method)
+    out.append(f"Lines: {pts}, centres by {method}"
+               + (f", FWHM {cal.fwhm_a:.2f} Å on {cal.fwhm_line} (R {cal.resolving_power:.0f})" if cal.fwhm_a else ""))
+    out += [f"Line {q.line}: {q.rejected}" for q in cal.points if q.rejected]
+    return out
 
 
 @dataclass
@@ -229,15 +321,9 @@ def _load(path: Path) -> np.ndarray:
     return np.asarray(fits.getdata(path), dtype=np.float64)
 
 
-def free_rms(ref: np.ndarray, p: dict[str, Any]) -> float | None:
-    """When refining: the RMS a free fit would reach on this night (to suggest it if much better)."""
-    if p["mode"] != "refine":
-        return None
-    try:
-        alt = calibrate_profile(ref, {**p, "mode": "free"})
-    except ValueError:
-        return None
-    return alt.fit.rms_a if alt.fit is not None and alt.mode == "free" else None
+def free_rms(cal: Calibration) -> float | None:
+    """When refining: the RMS a free fit reaches on this night (to suggest it if much better)."""
+    return cal.fits["free"]["rms"] if cal.mode == "refine" and "free" in cal.fits else None
 
 
 def preview_job(ctx: Ctx, ref_src: Path, tgt_src: Path | None, p: dict[str, Any],
@@ -246,12 +332,13 @@ def preview_job(ctx: Ctx, ref_src: Path, tgt_src: Path | None, p: dict[str, Any]
     ref = _load(ref_src)
     cal = calibrate_profile(ref, p)
     out = describe(cal)
-    out["free_rms"] = free_rms(ref, p)
+    out["free_rms"] = free_rms(cal)
     out["profiles"] = {"Reference": ref.astype(np.float32)}
     if tgt_src is not None and tgt_src.exists():
         tgt = _load(tgt_src)
         out["profiles"]["Target"] = tgt.astype(np.float32)
-        out["target"] = target_solution(cal.solution, ref, tgt, p, ti)[1]
+        if cal.status == "ok":  # a failed reference solution is never passed on to the target
+            out["target"] = target_solution(cal.solution, ref, tgt, p, ti)[1]
     crval, cdelt, n = linear_grid(cal.solution, p["grid_start"], p["grid_end"])
     out["grid"] = (crval, cdelt, n)
     ctx.step(1.0)
@@ -263,11 +350,11 @@ def wavelength_job(ctx: Ctx, spec: WavelengthSpec) -> StageRun:
     p = spec.params
     ref = _load(spec.ref_src)
     cal = calibrate_profile(ref, p)
-    if cal.fit is None or len(cal.points) < 2:
-        raise ValueError("fewer than two Balmer lines measured in the reference profile")
+    if cal.status != "ok":
+        raise ValueError(f"Wavelength failed: {cal.reason}")
     crval, cdelt, n = linear_grid(cal.solution, p["grid_start"], p["grid_end"])
     data = describe(cal)
-    data["grid"], data["profiles"], data["free_rms"] = (crval, cdelt, n), {}, free_rms(ref, p)
+    data["grid"], data["profiles"], data["free_rms"] = (crval, cdelt, n), {}, free_rms(cal)
     outputs, summaries, log = {}, {}, []
     target_line = ""
     for img, src in spec.sources.items():
@@ -282,16 +369,16 @@ def wavelength_job(ctx: Ctx, spec: WavelengthSpec) -> StageRun:
         flux = resample(prof, sol, crval, cdelt, n)
         header = {k: v for k, v in read_header(src).items() if k not in STRUCTURAL and k not in DROP_KEYS}
         header.update({"CRVAL1": crval, "CDELT1": cdelt, "CRPIX1": 1, "CTYPE1": "Wavelength", "CUNIT1": "Angstrom",
-                       "WAV_MODE": cal.mode, "WAV_ORD": cal.solution.order, "WAV_NLIN": len(cal.points),
+                       "WAV_MODE": cal.mode, "WAV_ORD": cal.solution.order, "WAV_NLIN": data["n_used"],
                        "WAV_RMS": round(cal.fit.rms_a, 4), "WAV_SHFT": round(cal.shift_px, 3),
                        "WAV_C0": c[0], "WAV_C1": c[1]})
-        if len(c) > 2:
-            header["WAV_C2"] = c[2]
+        for k in range(2, len(c)):
+            header[f"WAV_C{k}"] = c[k]
         if cal.resolving_power:
             header.update({"WAV_FWHM": round(cal.fwhm_a or 0, 3), "BSS_ESRP": round(cal.resolving_power),
                            "BSS_SRPW": round(BALMER[cal.fwhm_line], 2)})
         lines = " ".join(q.line.replace("α", "a").replace("β", "b").replace("γ", "g").replace("δ", "d")
-                         .replace("ε", "e") for q in cal.points)
+                         .replace("ε", "e").replace("ζ", "z").replace("η", "eta") for q in cal.points if q.used)
         history = [f"{APP_NAME} wavelength: {cal.mode} from the reference star, lines {lines}, order "
                    f"{cal.solution.order}, RMS {cal.fit.rms_a:.3f} A, f(x)=a+bx+cx^2 nm (x = 0-based column)",
                    f"coefficients (nm): {', '.join(repr(v) for v in c)}",
@@ -300,15 +387,11 @@ def wavelength_job(ctx: Ctx, spec: WavelengthSpec) -> StageRun:
         write_float32(spec.outputs[img], flux, header, history)
         outputs[img] = spec.outputs[img].name
         summaries[img] = f"{img}: {n} samples"
-    pts = " ".join(q.line for q in cal.points)
-    log.append(f"Calibration: {cal.mode}, shift {cal.shift_px:+.2f} px from the saved solution" if cal.mode == "refine"
-               else f"Calibration: {cal.mode}")
-    log.append(f"Lines: {pts} matched, order {cal.solution.order}, RMS {cal.fit.rms_a:.3f} Å"
-               + (f", FWHM {cal.fwhm_a:.2f} Å on {cal.fwhm_line} (R {cal.resolving_power:.0f})" if cal.fwhm_a else ""))
+    log += calibration_log(cal, data)
     log.append(f"Resampled to linear dispersion: {crval:.1f} Å + {cdelt:.5f} Å/px × {n} → "
                f"{', '.join(outputs.values())} in {time.perf_counter() - t0:.2f} s")
     if target_line:
         log.append(target_line)
     log += [f"Calibration: {m}" for m in cal.messages]
-    ribbon = f"{len(cal.points)} lines · RMS {cal.fit.rms_a:.2f} Å"
+    ribbon = f"{data['n_used']} lines · RMS {cal.fit.rms_a:.2f} Å"
     return StageRun("wavelength", outputs, summaries, log, data, ribbon)

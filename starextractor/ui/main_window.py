@@ -86,6 +86,9 @@ class MainWindow(QMainWindow):
         self.setMinimumHeight(700)
         self.resize(1280, 960)
         self.settings = settings or Settings()
+        from starextractor.core import devflags  # no heavy imports here: the start-up budget
+
+        devflags.centre_method = (self.settings["wavelength"] or {}).get("centre_method")  # developer setting
         self.runner = JobRunner(self)
         self._library: MasterLibrary | None = None
         self.masters_owner: Any = None  # the Create masters card that started the "masters" job

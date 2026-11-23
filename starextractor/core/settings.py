@@ -33,6 +33,7 @@ DEFAULTS: dict[str, Any] = {
     # top-row switch; splash: the start-up splash (ui/splash.py reads both straight from the file, no import)
     "plan": {},  # Plan › Observing conditions: from/to (HH:mm), min_alt, location (planning only, never in data files)
     "celebrate_saves": None,  # Export → Publish confetti; None = on unless the OS asks for reduced motion
+    "wavelength": {},  # developer only: {"centre_method": "auto" | "voigt" | "gauss" | "lorentz" | "minimum" | "v01"}
     "acq": {  # Acquisition tab (docs/ACQUISITION_TAB.md)
         "folder": "", "interval_s": 2.0, "process_existing": False, "linearity_frac": 0.8,
         "safety_frac": 0.95, "snr_target": 100.0, "snr_sigma": 2.0,

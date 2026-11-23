@@ -1,6 +1,62 @@
-# Wavelength step: the target's own solution (target calibration v2, 2026-11-19)
+# Wavelength step
 
-The reference star's Balmer fit is unchanged (`core/wavelength.py`, refine / free / fixed). The **target** now gets
+## The reference star's solution (v0.2, 2026-11-23)
+
+Why it changed: `docs/investigations/wavelength_2025-10-02_omiand.md`. Code: `core/balmer_search.py` (search, prior
+check), `core/wavelength.py` (`calibrate`), `core/centroid.py` (line centres), `core/wavelength_stage.py` (labels, log).
+
+1. **Blind Balmer search.** Absorption dips of the envelope-normalised profile (prominence ≥ 0.03, width ≥ 6 px: Balmer
+   lines are 11–27 px wide at R ≈ 360). Every pair of the 30 strongest dips is tried as every pair of Balmer lines
+   (Hα…Hη, pixel order = wavelength order, dispersion 1.0–1.4 Å/px), each hypothesis λ = λ0 + d·x is scored by the
+   lines that land on a dip (weighted by prominence and closeness, 22 px), refined by least squares (quadratic with
+   |c| ≤ 1e-6 nm/px², else linear) and pruned: while the RMS is above 2 Å the line the others predict worst is dropped.
+   A dip that sits closer to Na D, He I 4026/4471/5876, Ca II K or a telluric band (`core/linelists.py`) is never a
+   Balmer line. At least 3 of Hα–Hε are needed; the second-best different pattern is reported, and when it scores
+   within 85 % of the best (same line count) the step stops and asks for the Hβ and Hα markers.
+2. **The saved solution is only a prior.** `validate_prior`: at least 2/3 of Hα–Hε on the detector need a line-wide dip
+   (prominence ≥ 0.1) within 25 px of where it puts them. If not: *"Saved solution (pair, saved date) does not fit this
+   night (markers 151 px from the dips)"*, and the line positions come from the search. The offset moves between nights
+   (the camera is moved), the dispersion does not: a pattern whose dispersion is more than 3 % off the saved one is
+   not trusted. The saved solution's pair and date are kept with the session (`saved_source`).
+3. **Default mode.** Until the user picks one: *Fit freely* when the prior does not fit, or when the free fit's RMS is
+   under half the shift-only RMS (above 0.5 Å); the Solution card says why in one line. The user's choice is kept.
+4. **Quality gate.** RMS above min(3 Å, max(1 Å, 0.25 × FWHM)), fewer than 2 lines, or a solution that is not
+   monotonic on the detector: the step is **failed** (no `_W` files, logbook "failed", the target gets nothing).
+5. **Every number says which fit it is.** "Free fit: RMS 0.71 Å, 5 lines, order 2 (in use)" and "Shift only: RMS
+   1.08 Å, 5 lines, shift +151.4 px from the saved solution" in the Solution card, the log and the table footer. The
+   saved solution's own RMS (on its night) is no longer shown next to tonight's.
+6. **Wavelength order (pixel order = wavelength order).** A marker is clamped 15 px before its neighbours (it stops
+   there while dragging); a value that would break the order is refused and logged; the table rows are always in
+   wavelength order and cannot be sorted or moved; a saved state with out-of-order markers is repaired (the marker
+   ignored, with a message); a centre that slides past its neighbour is left out with a reason. Before v0.2 a marker
+   could be dragged onto another line's dip (the pair's Hδ marker sat on Hγ: RMS 155 Å, accepted).
+7. **Unmatched lines** are grey with a "?" and a tooltip: "no dip within 25 px of predicted x=…".
+8. **Optional anchors Hζ 3889.05 and Hη 3835.38** (A-type stars): off by default, drawn grey and dotted until enabled
+   in Lines › Add or remove lines (they then join the fit like the others).
+9. **Line centres** (`core/centroid.py`, chosen by the benchmark): **M0 v0.2** — v0.1's Gaussian + linear background
+   on the normalised profile, ±12 px, with hot pixels interpolated over, the window re-centred until it stops moving
+   (a marker 6 px off gives the same centre within 0.1 px), and only when that fails on a line wider than 18 px a
+   ±0.8 FWHM window. Dragged markers use the same fit (v0.1 used ±6 px and mostly kept the drop point). The centre
+   never moves more than one FWHM from the guess; a failed fit keeps the marker with "fit failed: marker kept".
+   Uncertainty: the fit covariance × the profile's pixel-correlation factor, plus a 0.15 px floor in the weights.
+   The pseudo-Voigt × continuum fit only diagnoses: an emission core leaves the line out ("emission core: left out"),
+   an asymmetric bisector (a blend) gives it weight 0.3; Hε is always flagged "blend: Ca II H 3968". Per line,
+   "FIT: mine" uses the dragged marker exactly (logged). The fit is weighted; at most one interior line beyond 3σ
+   (others' scatter at least 1 Å) is rejected and shown as "rejected: 4.1 σ". Developer setting:
+   `settings.json` → `"wavelength": {"centre_method": "auto" | "voigt" | "gauss" | "lorentz" | "minimum" | "v01"}`;
+   the method is part of the step's parameters, so changing it re-runs the step and marks later steps out of date.
+10. **Limits.** A quadratic follows the Star'Ex dispersion to about ±1 Å only (October 2025 nights; ±0.3 Å in
+   December): with Hα–Hε the free fit's RMS is 0.6–0.8 Å on those nights whatever the centres. A cubic reaches
+   0.1 Å: since 2026-11-23 **Cubic** can be picked in Fit order (5+ lines, never by default; with 5 lines only one
+   is left to check it). Blends (Hε + Ca II H: −0.6 px), emission cores
+   and the star's radial velocity (≈ 0.4 px per 30 km/s at Hβ) set a floor no centre method removes.
+11. **The target.** A manual target shift is relative to the reference solution, so it records the reference's Hβ
+   column; when the reference solution changes (or the shift predates this check) it is reset to 0 with a note in the
+   log and the Target card. The target log line now names a manual shift applied on top of the fit.
+
+## The target's own solution (target calibration v2, 2026-11-19)
+
+The reference star's Balmer fit is described above. The **target** now gets
 its own solution, always written as **reference solution + a small correction** measured on the target's own data.
 It never becomes a free calibration. Code: `core/linelists.py` (catalogue), `core/skylines.py` (sky lines),
 `core/targetcal.py` (model), `core/wavelength_stage.py` (`target_solution`), UI

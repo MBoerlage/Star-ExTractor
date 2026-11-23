@@ -42,17 +42,29 @@ class Adjust:
     lines: list[str] = field(default_factory=list)
     custom: dict[str, float] = field(default_factory=dict)  # free entry: name → Å
     manual: dict[str, float] = field(default_factory=dict)  # free fit: dragged marker px
+    ref_hb: float | None = None  # Hβ column of the reference solution the shift was set against
 
     @classmethod
     def from_params(cls, d: dict[str, Any] | None) -> Adjust:
         d = d or {}
         return cls(str(d.get("mode", "shift")), float(d.get("shift", 0.0)), str(d.get("source", "")),
                    list(d.get("lines", [])), {k: float(v) for k, v in (d.get("custom") or {}).items()},
-                   {k: float(v) for k, v in (d.get("manual") or {}).items()})
+                   {k: float(v) for k, v in (d.get("manual") or {}).items()},
+                   None if d.get("ref_hb") is None else float(d["ref_hb"]))
 
     def to_params(self) -> dict[str, Any]:
-        return {"mode": self.mode, "shift": round(self.shift, 3), "source": self.source, "lines": list(self.lines),
-                "custom": dict(self.custom), "manual": dict(self.manual)}
+        out = {"mode": self.mode, "shift": round(self.shift, 3), "source": self.source, "lines": list(self.lines),
+               "custom": dict(self.custom), "manual": dict(self.manual)}
+        if self.ref_hb is not None:
+            out["ref_hb"] = round(self.ref_hb, 2)
+        return out
+
+    def stale_for(self, ref: Solution, tol_px: float = 2.0) -> bool:
+        """A manual shift set against another reference solution (or before that was recorded) must not be carried
+        over silently: the shift is relative to the reference solution."""
+        if self.mode != "shift" or not self.shift:
+            return False
+        return self.ref_hb is None or abs(float(ref.pixel(4861.33)) - self.ref_hb) > tol_px
 
     @property
     def is_reference(self) -> bool:

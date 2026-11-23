@@ -1,5 +1,24 @@
 # Changelog
 
+## 0.2.0 (2026-11-23): reliable wavelength calibration
+
+**Wavelength**
+- The Balmer lines are found by a blind pattern search over the reference profile, so a camera that moved between
+  nights no longer leads to wrong lines. Telluric bands, Na D, He I and Ca II K are never taken for Balmer lines.
+- The saved solution is used only after it is checked against the profile; when it does not fit, the step says so
+  (with the night it came from) and fits freely.
+- A quality gate: a solution that is too poor or does not increase across the detector fails the step, and nothing is
+  passed on to the target.
+- Line centres are re-centred and cleaned of hot pixels, with an uncertainty per line; the fit is weighted and leaves
+  out at most one outlier, marked in the table. Emission cores and blends are flagged.
+- Every RMS is labelled with the fit it belongs to; the table has columns for uncertainty, FWHM, fit / my position
+  and flags; a line that is not found says why. Hζ and Hη can be added as anchors.
+- Markers keep the wavelength order (they stop 15 px before a neighbour); the table is always in wavelength order.
+- **Cubic** fit order, as a choice with 5 or more lines (never the default).
+- A manual target shift is reset, with a note, when the reference solution changes.
+
+Every processed pair's Wavelength step (and the steps after it) is out of date after the update: run it again.
+
 ## 0.1.0 (2026-11-21): first public release
 
 Star ExTractor 0.1 reduces Star'Ex LR (with a ZWO ASI585MM Pro) slit spectra on Windows, from the observing plan to

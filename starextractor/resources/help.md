@@ -211,12 +211,18 @@ reference stack** reuses the bands, and **Save as default rows** keeps them for 
 
 ### Wavelength
 
-Gives every pixel a wavelength. The reference star's Balmer lines (Hδ … Hα) are fitted; drag a marker onto its line
-if needed, add or remove lines, choose **Linear** or **Quadratic** (never more terms than the lines allow). The table
-shows each line's error, the RMS and the dispersion; the **Coefficients** box gives the solution in the BASS format
-(nm, offset first) to copy or paste. The target gets its own solution: the reference's, plus a shift measured on its
-sky lines and telluric bands (**Auto-match**), or fitted freely on the target's own lines. *Resolution* measures the
-FWHM and R on Hβ.
+Gives every pixel a wavelength. The reference star's Balmer lines (Hε … Hα) are found by their spacing, without
+assuming where they are; the solution saved from an earlier night is only a guide, and the *Solution* card says when
+it does not fit tonight (the camera may have moved). Drag a marker onto its line if needed: the fit follows from
+wherever you drop it, and a marker stops 15 px before its neighbours, so the lines always stay in wavelength order. In
+the table, **FIT** switches a dragged line to "mine" (your position, no fit). Add or remove lines (Hζ and Hη are
+optional extras for A-type stars), choose **Linear**, **Quadratic** or **Cubic** (never more terms than the lines allow: Cubic needs 5 lines, and is never chosen for you). The
+table shows each line's centre uncertainty (±), width, error and flags (⚠ blend or emission, ⊘ left out); every RMS
+says which fit it belongs to ("Free fit", "Shift only"). A fit whose RMS is too large is **failed**, not passed on.
+The **Coefficients** box gives the solution in the BASS format (nm, offset first) to copy or paste. The target gets
+its own solution: the reference's, plus a shift measured on its sky lines and telluric bands (**Auto-match**), or
+fitted freely on the target's own lines; a manual target shift is reset when the reference solution changes.
+*Resolution* measures the FWHM and R on Hβ.
 
 ### Response
 
@@ -306,8 +312,9 @@ never written into a data file, a FITS header, an export or the observing plan.
   out of date. Run them again.
 - **The spectrum rows are wrong** (Acquisition or 1D Extract): zoom in on the star you want and press Re-detect /
   Auto-place, or drag the bands.
-- **The wavelength fit is poor**: check that each marker sits on its line in the reference profile; remove lines
-  you cannot see; prefer Linear with few lines.
+- **The wavelength fit is poor or failed**: check that each marker sits on its line in the reference profile (a grey
+  marker with "?" found no line: hover it for the reason); remove lines you cannot see; prefer Linear with few lines.
+  On some nights a quadratic cannot follow the spectrograph better than about ±1 Å.
 - **No reference star tonight**: use a saved response in Response.
 - **Start fresh**: close the app and rename `%APPDATA%\StarExtractor`; your data root is not touched.
 

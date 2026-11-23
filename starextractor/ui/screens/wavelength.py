@@ -52,6 +52,35 @@ if TYPE_CHECKING:
 
 MODES = (("refine", "Refine the saved solution (shift only)"), ("free", "Fit freely from these lines"),
          ("fixed", "Use the pasted coefficients"))
+# Calibration points table
+COLS = ("#", "LINE", "PIXEL", "± PX", "WAVELENGTH", "ERROR", "± Å", "FWHM PX", "FIT", "", "")
+C_FIT, C_FLAG, C_DEL = 8, 9, 10
+FLAG_ICON = {"rejected": "⊘", "warn": "⚠", "mine": "✎"}
+
+
+def _safe_px(sol: w.Solution, lam: float) -> float:
+    try:
+        return float(sol.pixel(lam))
+    except (ValueError, ZeroDivisionError):
+        return float("nan")
+
+
+def solution_note(r: dict[str, Any]) -> str:
+    """The Solution card: every number with the fit it belongs to, the one in use first, and why it was chosen."""
+    if r["mode"] == "fixed":
+        return "Pasted coefficients, used as they are" + (f": RMS {r['rms']:.2f} Å on the lines" if r.get("rms")
+                                                           is not None else "")
+    fits = r.get("fits") or {}
+    lines = []
+    for key in sorted(fits, key=lambda k: not fits[k].get("active")):
+        f = fits[key]
+        what = (f"{f['label']}: RMS {f['rms']:.2f} Å, {f['n']} lines"
+                + (f", shift {f['shift']:+.1f} px from the saved solution" if key == "shift" else
+                   f", order {f['order']}"))
+        lines.append(("▸ " if f.get("active") else "   ") + what + (" (in use)" if f.get("active") else ""))
+    if r.get("mode_reason"):
+        lines.append(r["mode_reason"] + ".")
+    return "\n".join(lines) or f"Shift from the saved solution: {r['shift']:+.1f} px"
 
 
 def mono_item(text: str, colour: str | None = None) -> QTableWidgetItem:
@@ -74,6 +103,10 @@ class WavelengthScreen(StepScreen):
         self.x_unit = "px"  # chart X axis
         self._loading = False
         self.markers: list[pg.InfiniteLine] = []
+        self.overlays: list[Any] = []  # fitted profiles, centre ticks, optional-line markers
+        self._retired: list[Any] = []  # the previous redraw's items, kept alive one more round
+        self.marker_by_line: dict[str, pg.InfiniteLine] = {}
+        self.table_lines: list[str] = []
         self.header.set_files("Reference_X.fit", "Reference_W.fit")
         row = QHBoxLayout()
         row.setSpacing(16)
@@ -155,7 +188,10 @@ class WavelengthScreen(StepScreen):
     def _build_points_card(self) -> Card:
         card = Card("Calibration points")
         card.head.addWidget(label("Fit order", "muted"))
-        self.order = Segmented(["Linear", "Quadratic"])
+        self.order = Segmented(["Linear", "Quadratic", "Cubic"])
+        self.order.buttons[2].setToolTip("Cubic: needs 5 or more lines (order ≤ lines − 2). It follows the Star'Ex "
+                                         "dispersion more closely than a quadratic, but with 5 lines only one is "
+                                         "left to check it.")
         self.order.changed.connect(self._order_changed)
         card.head.addWidget(self.order)
         self.order_note = label("", "muted", wrap=True, style="font-size: 12px;")
@@ -165,7 +201,7 @@ class WavelengthScreen(StepScreen):
         self.unit_box.addItems(["Å", "nm"])
         self.unit_box.currentIndexChanged.connect(self._unit_changed)
         card.head.addWidget(self.unit_box)
-        self.table = QTableWidget(0, 6)
+        self.table = QTableWidget(0, len(COLS))
         self.table.verticalHeader().hide()
         self.table.setShowGrid(False)
         self.table.setWordWrap(False)
@@ -174,9 +210,11 @@ class WavelengthScreen(StepScreen):
         self.table.verticalHeader().setDefaultSectionSize(34)
         hh = self.table.horizontalHeader()
         hh.setSectionResizeMode(QHeaderView.ResizeMode.Stretch)
-        for c, width in ((0, 50), (5, 40)):
+        for c, width in ((0, 36), (C_FIT, 58), (C_FLAG, 34), (C_DEL, 34)):
             hh.setSectionResizeMode(c, QHeaderView.ResizeMode.Fixed)
             self.table.setColumnWidth(c, width)
+        self.table.setSortingEnabled(False)  # rows are always in wavelength order (Part B)
+        hh.setSectionsMovable(False)
         self.table.cellClicked.connect(self._cell_clicked)
         card.body.addWidget(self.table)
         self.footer = label("", "mono", wrap=True)
@@ -337,8 +375,9 @@ class WavelengthScreen(StepScreen):
         self.lines_btn = QPushButton("Add or remove lines…")
         self.lines_menu = QMenu(self)
         self.line_actions: dict[str, QAction] = {}
-        for name, lam in w.BALMER.items():
-            act = QAction(f"{name} {lam:.2f} Å", self, checkable=True)
+        for name, lam in w.ALL_LINES.items():
+            extra = "  (optional, A-type stars)" if name in w.EXTRA_LINES else ""
+            act = QAction(f"{name} {lam:.2f} Å{extra}", self, checkable=True)
             act.toggled.connect(lambda _on, n=name: self._lines_changed())
             self.lines_menu.addAction(act)
             self.line_actions[name] = act
@@ -367,8 +406,7 @@ class WavelengthScreen(StepScreen):
         self.mode_buttons["fixed"].setVisible(bool(p.get("fixed")))
         for name, act in self.line_actions.items():
             act.setChecked(name in p["lines"])
-        prof = self.host.profile.dispersion
-        self.saved_note.setText(f"Saved solution: {prof.get('date', '?')} · {prof.get('source', '')}")
+        self.saved_note.setText(f"Saved solution (prior): {p.get('saved_source') or '?'}")
         self._load_target(target_adjust(p))
         self.cal_card.set_mode(target_cal_params(p)["mode"])
         self._loading = False
@@ -433,7 +471,13 @@ class WavelengthScreen(StepScreen):
             return
         adj = self.adjust()
         adj.shift, adj.source = round(float(value), 3), source if value else ""
+        adj.ref_hb = self._ref_hb() if value else None
         self._set_adjust(adj)
+
+    def _ref_hb(self) -> float | None:
+        """Hβ column of the reference solution on screen: a manual target shift is relative to it."""
+        r = self.result
+        return None if not r else round(float(w.Solution(r["coeffs"]).pixel(w.BALMER["Hβ"])), 2)
 
     def reset_target(self) -> None:
         cur = self.adjust()
@@ -506,6 +550,7 @@ class WavelengthScreen(StepScreen):
             return
         adj = self.adjust()
         adj.shift, adj.source, adj.mode, adj.manual = round(m["shift"], 3), "auto-match", "shift", {}
+        adj.ref_hb = self._ref_hb()
         self._load_target(adj)
         self._set_adjust(adj, f"auto-match {m['shift']:+.2f} ± {m['err']:.2f} px ({m['shift_a']:+.2f} Å) "
                               "accepted")
@@ -537,27 +582,49 @@ class WavelengthScreen(StepScreen):
             self.on_match(res)
             return
         self.result = res
+        self._apply_reset(res)
+        self._drop_repaired(res)
         self._show()
 
     def stage_done(self, run: StageRun) -> None:
         self.result = run.data
+        self._apply_reset(run.data or {})
         self._show()
         self._save_profile(run.data or {})
 
+    def _drop_repaired(self, res: dict[str, Any]) -> None:
+        """A stored marker that breaks the wavelength order (a state from before the order rule) is removed for good."""
+        gone = [n for n in res.get("repaired") or [] if n in (self.params().get("manual") or {})]
+        if gone:
+            manual = {k: v for k, v in self.params()["manual"].items() if k not in gone}
+            self.host.session.log(f"Line {', '.join(gone)}: dragged marker removed (out of wavelength order)")
+            self._set_params(manual=manual)  # previews again: the next result has nothing left to repair
+
+    def _apply_reset(self, res: dict[str, Any]) -> None:
+        """The target's manual shift was set for another reference solution: store it as 0 (the run ignored it)."""
+        reset = ((res.get("target") or {}).get("manual_reset"))
+        adj = self.adjust()
+        if reset and adj.shift:
+            adj.shift, adj.source, adj.ref_hb = 0.0, "", None
+            self.host.session.set_image_params("wavelength", "Target", {"adjust": adj.to_params()})
+            self.host.session.log(f"Target wavelength: {reset['text']}")
+            self.host.inputs_changed()
+            self._load_target(adj)
+
     def _save_profile(self, d: dict[str, Any]) -> None:
-        """Keep tonight's solution as the spectrograph's saved one (used by 'Refine' next time)."""
-        if not d.get("points") or d.get("rms") is None or d["rms"] > 1.0 or len(d["points"]) < 3:
+        """Keep tonight's solution as the spectrograph's saved one: the prior next time (validated before use)."""
+        if (not d.get("points") or d.get("rms") is None or d["rms"] > 1.0 or d.get("n_used", 0) < 3
+                or d.get("status", "ok") != "ok"):
             return
         prof = self.host.profile
         prof.dispersion = {"coeffs_nm": list(d["coeffs"]), "order": len(d["coeffs"]) - 1,
                            "date": time.strftime("%Y-%m-%d"),
                            "source": f"{Path(str(self.host.session.folder)).name}, {d['mode']}, "
-                                     f"{len(d['points'])} lines, RMS {d['rms']:.3f} Å"}
+                                     f"{d['n_used']} lines, RMS {d['rms']:.3f} Å"}
         if d.get("fwhm"):
             prof.fwhm_a, prof.resolving_power = d["fwhm"], d["R"]
         prof.save()
-        self.saved_note.setText(f"Saved solution: {prof.dispersion['date']} · {prof.dispersion['source']}")
-        self.host.session.log("Wavelength solution saved for this spectrograph")
+        self.host.session.log("Wavelength solution saved for this spectrograph (the prior of the next pair)")
 
     # ---- display -----------------------------------------------------------------------------
     def _view(self) -> dict[str, Any] | None:
@@ -591,24 +658,25 @@ class WavelengthScreen(StepScreen):
         r = self.result
         p = self.params()
         mode = r["mode"]
-        note = (f"Shift from the saved solution: {r['shift']:+.1f} px" if mode != "fixed" else
-                "Pasted coefficients, used as they are")
-        free_rms = r.get("free_rms")
-        if mode == "refine" and free_rms is not None and r.get("rms") and free_rms < 0.5 * r["rms"]:
-            note += (f". The saved shape fits this night less well (RMS {r['rms']:.2f} Å): "
-                     f"Fit freely gives RMS {free_rms:.2f} Å.")
-        self.shift_note.setText(note)
-        refine = p["mode"] == "refine"
-        n = len(r["points"])
+        self._loading = True
+        if mode in self.mode_buttons:  # the mode in use (it may have been chosen automatically)
+            self.mode_buttons[mode].setChecked(True)
+        self._loading = False
+        self.shift_note.setText(solution_note(r))
+        prior = r.get("prior") or {}
+        self.saved_note.setText(prior.get("message") or f"Saved solution (prior): {p.get('saved_source') or '?'}")
+        refine = mode == "refine"
+        n = int(r.get("n_used", len(r["points"])))
         cap = w.max_order(n, True)
         self._loading = True
         self.order.set_index(len(r["coeffs"]) - 2)
         self._loading = False
         for i, b in enumerate(self.order.buttons):
-            b.setEnabled(p["mode"] == "free" and i + 1 <= max(cap, 1))
+            b.setEnabled(mode == "free" and i + 1 <= max(cap, 1))
         self.order_note.setText("Fixed by the saved solution. Choose \"Fit freely\" to change it." if refine else
                                 "3 lines: quadratic would fit exactly (no check)." if n == 3 and len(r["coeffs"]) == 3
-                                else "")
+                                else f"Cubic on {n} lines: only {n - 4} line(s) left to check it."
+                                if len(r["coeffs"]) == 4 else "")
         if r.get("fwhm"):
             self.fwhm.setText(f"{r['fwhm']:.2f}")
             self.rval.setText(f"{r['R']:.0f}")
@@ -618,9 +686,13 @@ class WavelengthScreen(StepScreen):
             self.fwhm.setText("—")
             self.rval.setText("—")
             self.res_note.setText("No clean Balmer line to measure.")
-        msgs = r.get("messages") or []
-        self.messages.set("warn", " · ".join(msgs))
-        self.messages.setVisible(bool(msgs))
+        msgs = list(r.get("messages") or [])
+        if r.get("status") == "failed":
+            self.messages.set("err", f"Failed: {r.get('reason', '')}. Nothing is passed on to the target.")
+            self.messages.setVisible(True)
+        else:
+            self.messages.set("warn", " · ".join(msgs))
+            self.messages.setVisible(bool(msgs))
 
     def _target_panel(self) -> None:
         on = self.view == "Target"
@@ -643,29 +715,53 @@ class WavelengthScreen(StepScreen):
                 txt += f" {len(t['points'])} lines, RMS {t['rms']:.2f} Å."
         if adj.mode == "free" and not adj.lines:
             txt += " Pick target lines with Add or remove lines…"
-        self.t_note.setText(" ".join([txt, *t.get("messages", [])]))
+        reset = t.get("manual_reset")
+        self.t_note.setText(" ".join([txt, *t.get("messages", []), *([reset["text"] + "."] if reset else [])]))
 
     def _markers(self, r: dict[str, Any]) -> None:
         pi = self.plot.getPlotItem()
-        for m in self.markers:
+        for m in [*self.markers, *self.overlays]:
             pi.removeItem(m)
-        self.markers = []
+        # removed items stay referenced until the next redraw: the scene may still hold one (the last hovered item)
+        # and a Python garbage collection inside its paint would free it under Qt's feet (access violation)
+        self._retired = [*self.markers, *self.overlays]
+        self.markers, self.overlays, self.marker_by_line = [], [], {}
         sol = w.Solution(r["coeffs"])
         pts = {q["line"]: q for q in r["points"]}
         target = self.view == "Target" and r.get("target") is not None
-        lines = {n: w.BALMER[n] for n in self.params()["lines"]}
+        enabled = [n for n in self.params()["lines"] if n in w.ALL_LINES]
+        lines = {n: w.ALL_LINES[n] for n in enabled}
         if target:
             lines.update(self.adjust().wavelengths())
-        for k, (name, lam) in enumerate(sorted(lines.items(), key=lambda kv: kv[1])):
-            px = pts[name]["pixel"] if name in pts and not target else sol.pixel(lam)
-            found = name in pts
-            pen = pg.mkPen(theme.AMBER if found else theme.DIM, width=1, style=Qt.PenStyle.DashLine)
+        unmatched = r.get("unmatched") or {}
+        place: dict[str, float] = {}
+        for name, lam in lines.items():
+            place[name] = pts[name]["pixel"] if name in pts and not target else _safe_px(sol, lam)
+        order = sorted((n for n in place if place[n] == place[n]), key=lambda n: lines[n])
+        prof = r["profiles"].get(self.view, r["profiles"]["Reference"])
+        peak = float(np.nanpercentile(prof, 99.5)) or 1.0
+        for k, name in enumerate(order):
+            lam, px = lines[name], place[name]
+            q = pts.get(name)
+            found = q is not None and not (q.get("rejected") or "")
+            colour = theme.AMBER if found else theme.DIM
+            short = name if any(ch.isdigit() for ch in name) else f"{name} {lam:.0f}"
+            why = "" if target else unmatched.get(name) or (q or {}).get("rejected") or ""
+            pen = pg.mkPen(colour, width=1, style=Qt.PenStyle.DashLine)
             m = pg.InfiniteLine(pos=float(self._to_axis(px)), angle=90, movable=True, pen=pen,
                                 hoverPen=pg.mkPen(theme.TEXT, width=2),
-                                label=name if any(ch.isdigit() for ch in name) else f"{name} {lam:.0f}",
+                                label=short + (" ?" if why and not found else ""),
                                 labelOpts={"position": 0.95 - 0.07 * (k % 2),  # staggered: blue lines are close
-                                           "color": theme.AMBER if found else theme.DIM,
-                                           "fill": pg.mkBrush(theme.CARD)})
+                                           "color": colour, "fill": pg.mkBrush(theme.CARD)})
+            tip = [f"{name} {lam:.2f} Å at x={px:.1f}"]
+            if why:
+                tip.append(why)
+            if not target:  # Part B: a marker never passes its neighbour
+                lo = place[order[k - 1]] + w.MIN_GAP_PX if k else 0.0
+                hi = place[order[k + 1]] - w.MIN_GAP_PX if k + 1 < len(order) else float(len(prof) - 1)
+                m.setBounds([float(self._to_axis(lo)), float(self._to_axis(hi))])
+                tip.append("Drag to move; it stops 15 px before its neighbours (wavelength order)")
+            m.setToolTip("\n".join(tip))
             if target:
                 m.sigPositionChangeFinished.connect(
                     lambda line, n=name, p0=px: self._target_marker_moved(n, p0, self._to_px(line.value())))
@@ -674,36 +770,90 @@ class WavelengthScreen(StepScreen):
                     lambda line, n=name: self._marker_moved(n, self._to_px(line.value())))
             pi.addItem(m)
             self.markers.append(m)
+            self.marker_by_line[name] = m
+            if q is not None and q.get("fit_x") and not target:  # the fitted profile and a tick at its centre
+                fx = np.asarray(q["fit_x"], dtype=np.float64)
+                curve = pg.PlotDataItem(self._to_axis(fx), np.asarray(q["fit_y"]) / peak,
+                                        pen=pg.mkPen(theme.TEXT, width=1))
+                curve.setZValue(5)
+                y0 = float(np.interp(q["pixel"], fx, np.asarray(q["fit_y"]))) / peak
+                tick = pg.PlotDataItem([float(self._to_axis(q["pixel"]))] * 2, [y0 - 0.06, y0 + 0.06],
+                                       pen=pg.mkPen(theme.TEXT, width=2))
+                tick.setZValue(6)
+                for it in (curve, tick):
+                    pi.addItem(it)
+                    self.overlays.append(it)
+        if not target:  # optional anchors not in use: grey, fixed, until enabled in Add or remove lines
+            for j, name in enumerate(w.EXTRA_LINES):
+                if name in lines:
+                    continue
+                px = _safe_px(sol, w.ALL_LINES[name])
+                if px == px and 0 <= px < len(prof):
+                    g = pg.InfiniteLine(pos=float(self._to_axis(px)), angle=90, movable=False,
+                                        pen=pg.mkPen(theme.DIM, width=1, style=Qt.PenStyle.DotLine),
+                                        label=f"{name} (optional)", labelOpts={  # staggered: 54 px apart
+                                            "position": 0.81 - 0.07 * j, "color": theme.DIM,
+                                            "fill": pg.mkBrush(theme.CARD)})
+                    g.setToolTip(f"{name} {w.ALL_LINES[name]:.2f} Å: an optional anchor for A-type stars. "
+                                 "Enable it in Lines › Add or remove lines…")
+                    pi.addItem(g)
+                    self.overlays.append(g)
 
     def _fmt_lam(self, a: float) -> str:
         return f"{a:.2f}" if self.unit == "A" else f"{a / 10:.4f}"
 
     def _table(self, r: dict[str, Any]) -> None:
         u = "Å" if self.unit == "A" else "nm"
-        self.table.setHorizontalHeaderLabels(["#", "LINE", "PIXEL", f"WAVELENGTH {u}", f"ERROR {u}", ""])
-        pts = r["points"]
+        k = 1 if self.unit == "A" else 0.1
+        self.table.setHorizontalHeaderLabels(["#", "LINE", "PIXEL", "± PX", f"WAVELENGTH {u}", f"ERROR {u}",
+                                              f"± {u}", "FWHM PX", "FIT", "", ""])
+        pts = sorted(r["points"], key=lambda q: q["lam"])  # always wavelength order, never sortable
+        nofit = set(self.params().get("nofit") or [])
         self.table.setRowCount(len(pts))
         for i, q in enumerate(pts):
-            err = q["error"] if self.unit == "A" else q["error"] / 10
-            self.table.setItem(i, 0, mono_item(str(i + 1)))
-            manual_colour = theme.AMBER if q["manual"] else None  # moved by hand: needs attention
+            out = bool(q.get("rejected"))
+            dim = theme.DIM if out else None
+            err = q["error"] * k
+            self.table.setItem(i, 0, mono_item(str(i + 1), dim))
+            manual_colour = dim or (theme.AMBER if q["manual"] else None)  # moved by hand: needs attention
             self.table.setItem(i, 1, mono_item(q["line"] + (" ·" if q["manual"] else ""), manual_colour))
-            self.table.setItem(i, 2, mono_item(f"{q['pixel']:.1f}"))
-            self.table.setItem(i, 3, mono_item(self._fmt_lam(q["lam"])))
-            self.table.setItem(i, 4, mono_item(f"{err:+.3f}".replace("-", "−") if abs(err) >= 5e-4 else "0.000"))
+            self.table.setItem(i, 2, mono_item(f"{q['pixel']:.1f}", dim))
+            e_px = q.get("err_px", float("nan"))
+            self.table.setItem(i, 3, mono_item("—" if e_px != e_px else f"{e_px:.2f}", dim))
+            self.table.setItem(i, 4, mono_item(self._fmt_lam(q["lam"]), dim))
+            self.table.setItem(i, 5, mono_item(f"{err:+.3f}".replace("-", "−") if abs(err) >= 5e-4 else "0.000",
+                                               dim))
+            e_a = q.get("err_a", float("nan"))
+            self.table.setItem(i, 6, mono_item("—" if e_a != e_a else f"{e_a * k:.3f}", dim))
+            fw = q.get("fwhm_px") or 0.0
+            self.table.setItem(i, 7, mono_item(f"{fw:.1f}" if fw else "—", dim))
+            mine = q["line"] in nofit
+            fit_cell = mono_item("mine" if mine else "fit", theme.AMBER if mine else theme.MUTED)
+            fit_cell.setTextAlignment(Qt.AlignmentFlag.AlignCenter)
+            fit_cell.setToolTip("Click to use the marker exactly where you put it (no fit)" if q["manual"] and not mine
+                                else "Click to fit the line again from your marker" if mine
+                                else "Drag the marker first: then this line can use your position without a fit")
+            self.table.setItem(i, C_FIT, fit_cell)
+            flags = list(q.get("flags") or [])
+            kind = "rejected" if out else "mine" if mine else "warn" if flags else ""
+            f = mono_item(FLAG_ICON.get(kind, ""), theme.AMBER if kind == "warn" else theme.MUTED)
+            f.setTextAlignment(Qt.AlignmentFlag.AlignCenter)
+            f.setToolTip("; ".join([q.get("rejected") or "", *flags]).strip("; ") or "No flags")
+            self.table.setItem(i, C_FLAG, f)
             x = mono_item("✕", theme.MUTED)
             x.setTextAlignment(Qt.AlignmentFlag.AlignCenter)
             x.setToolTip("Remove this line from the fit")
-            self.table.setItem(i, 5, x)
+            self.table.setItem(i, C_DEL, x)
+        self.table_lines = [q["line"] for q in pts]
         self.table.setFixedHeight(34 + 34 * max(1, len(pts)) + 4)
         sol = w.Solution(r["coeffs"])
         mid = sol.pixel(5500.0)
         disp = sol.dispersion_a(mid)
         tot = r.get("total") or 0.0
         rms = r.get("rms") or 0.0
-        k = 1 if self.unit == "A" else 0.1
-        self.footer.setText(f"Total error {tot * k:.3f} {u}    RMS {rms * k:.3f} {u}    "
-                            f"Dispersion {disp * k:.3f} {u}/px")
+        n = r.get("n_used", len(pts))
+        self.footer.setText(f"{r.get('label', 'Fit')}: RMS {rms * k:.3f} {u}, {n} lines    "
+                            f"Total error {tot * k:.3f} {u}    Dispersion {disp * k:.3f} {u}/px")
 
     def _coeffs(self, r: dict[str, Any]) -> None:
         c = r["coeffs"]
@@ -769,8 +919,8 @@ class WavelengthScreen(StepScreen):
             self._table(self.result)
 
     def _mode_changed(self, mode: str) -> None:
-        if not self._loading:
-            self._set_params(mode=mode)
+        if not self._loading:  # the user's choice is kept from now on (no automatic switch)
+            self._set_params(mode=mode, mode_user=True)
 
     def _order_changed(self, idx: int) -> None:
         if self._loading:
@@ -786,13 +936,35 @@ class WavelengthScreen(StepScreen):
 
     def _marker_moved(self, name: str, px: float) -> None:
         manual = {**self.params()["manual"], name: round(float(px), 2)}
+        r = self.result or {}
+        auto = {q["line"]: q["pixel"] for q in r.get("points", [])}
+        if w.check_order({**auto, **manual}):  # cannot happen through the clamped marker; refuse a stray value
+            self.host.session.log(f"Line {name}: marker at px {px:.1f} refused (wavelength order)")
+            self._show()
+            return
         self.host.session.log(f"Line {name}: marker moved to px {px:.1f}")
         self._set_params(manual=manual)
 
     def _cell_clicked(self, row: int, col: int) -> None:
-        if col == 5 and self.result and 0 <= row < len(self.result["points"]):
-            name = self.result["points"][row]["line"]
+        lines = getattr(self, "table_lines", [])
+        if not self.result or not 0 <= row < len(lines):
+            return
+        name = lines[row]
+        if col == C_DEL:
             self.line_actions[name].setChecked(False)  # triggers _lines_changed
+        elif col == C_FIT:
+            self.set_nofit(name, name not in (self.params().get("nofit") or []))
+
+    def set_nofit(self, name: str, on: bool) -> None:
+        """Per line: use the dragged marker exactly (no fit), or fit from it again. Recorded in the logbook."""
+        p = self.params()
+        if on and name not in p["manual"]:
+            self.messages.set("warn", f"Drag the {name} marker first: then it can use your position without a fit")
+            self.messages.show()
+            return
+        nofit = sorted(set(p.get("nofit") or []) | {name}) if on else [n for n in p.get("nofit") or [] if n != name]
+        self.host.session.log(f"Line {name}: " + ("my position used (no fit)" if on else "fitted from the marker"))
+        self._set_params(nofit=nofit)
 
     def _target_marker_moved(self, name: str, old_px: float, px: float) -> None:
         """Target tab: a dragged marker moves the whole target shift, or with Fit freely, that line only."""
@@ -803,6 +975,7 @@ class WavelengthScreen(StepScreen):
             return
         adj.shift = round(adj.shift + float(px - old_px), 3)
         adj.source = "marker"
+        adj.ref_hb = self._ref_hb()
         self._load_target(adj)
         self._set_adjust(adj, f"marker {name} dragged: target shift {adj.shift:+.2f} px")
 

@@ -48,7 +48,8 @@ def test_4_copy_paste_round_trip() -> None:
 
 # ---- solution behaviour -----------------------------------------------------------------------
 def test_order_guard() -> None:
-    assert w.max_order(2) == 1 and w.max_order(3) == 1 and w.max_order(4) == 2 and w.max_order(5) == 2
+    assert w.max_order(2) == 1 and w.max_order(3) == 1 and w.max_order(4) == 2 and w.max_order(5) == 3
+    assert w.default_order(5) == 2 and w.default_order(7) == 2 and w.max_order(9) == 3
     assert w.max_order(3, allow_exact=True) == 2 and w.max_order(1) == 0
     with pytest.raises(ValueError):
         w.fit(np.array([1.0, 2.0]), np.array([4000.0, 4001.0]), 2)
@@ -106,3 +107,27 @@ def test_resample_conserves_flux_and_grid() -> None:
     np.testing.assert_allclose(inside, expect[np.isfinite(out)], rtol=1e-3)
     total_in = prof[int(sol.pixel(4000)) + 1:int(sol.pixel(8000))].sum()
     assert np.nansum(out) == pytest.approx(total_in, rel=2e-3)
+
+
+# ---- cubic (user choice, 5+ lines) ------------------------------------------------------------
+def test_cubic_solution_inverse_shift_and_dispersion() -> None:
+    sol = w.Solution([348.38, 0.1203, 6.0e-8, 4.0e-12])
+    for lam in (3970.07, 4861.33, 6562.852):
+        assert abs(float(sol.angstrom(sol.pixel(lam))) - lam) < 1e-6
+    sh = sol.shifted(12.5)
+    for x in (100.0, 1500.0, 3000.0):
+        assert abs(float(sh.angstrom(x + 12.5)) - float(sol.angstrom(x))) < 1e-8
+    x = 1200.0
+    num = (float(sol.angstrom(x + 0.5)) - float(sol.angstrom(x - 0.5)))
+    assert abs(sol.dispersion_a(x) - num) < 1e-6
+    assert len(w.parse_coeffs("348.38, 0.1203, 6.0e-8, 4.0e-12")) == 4
+
+
+def test_cubic_fit_only_on_request() -> None:
+    true = w.Solution([348.38, 0.1203, 6.0e-8, 4.0e-12])
+    lam = np.array(list(w.BALMER.values()))
+    px = np.array([true.pixel(v) for v in lam])
+    assert w.fit(px, lam, 3).rms_a < 1e-6
+    assert w.fit(px, lam, 2).rms_a > w.fit(px, lam, 3).rms_a
+    with pytest.raises(ValueError):
+        w.fit(px[:3], lam[:3], 3)
