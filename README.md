@@ -1,6 +1,6 @@
 # Star ExTractor
 
-**Version 0.1**: the first public release. Windows 10/11 (64-bit). No Python needed.
+**Version 0.3**. Windows 10/11 (64-bit). No Python needed.
 
 Star ExTractor turns the frames from a **Star'Ex LR** slit spectrograph into a calibrated, response-corrected 1D
 spectrum, ready to upload to the **AAVSO Spectroscopy Database (AVSpec)**. It plans the night, watches your subs
@@ -116,14 +116,14 @@ reduces a small built-in example without opening a window and prints `self-test 
 * **Splash screen**: turn it off in Settings › Start-up › *Show splash screen*, or for one start with
   `StarExtractor.exe --no-splash`.
 
-## Known limitations in 0.1
+## Known limitations
 
 * Windows only, and one instrument (Star'Ex LR + ASI585MM Pro).
 * The installer is not code-signed, so SmartScreen asks once (see above).
-* *Run all* (all Reduce steps in one go) is hidden in this version; run the steps one by one.
+* *Run all* (all Reduce steps in one go) is hidden for now; run the steps one by one.
 * Uploading to AVSpec is done by you on the AAVSO website.
 
-Found a problem or have an idea? [Open an issue](https://github.com/MBoerlage/Star-ExTractor/issues/new/choose).
+Found a problem or have an idea? Use **Help › User Feedback** in the app, or [open an issue](https://github.com/MBoerlage/Star-ExTractor/issues/new/choose).
 
 ## For developers
 

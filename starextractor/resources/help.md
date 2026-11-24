@@ -2,8 +2,9 @@
 
 Star ExTractor takes you from an observing plan to a calibrated spectrum ready for the AAVSO AVSpec database, for
 the Star'Ex LR slit spectrograph with a ZWO ASI585MM Pro camera. This guide walks through one night from start to
-finish, then explains the tools around it. It is the guide for **version 0.1**, the first public release;
-installing, updating and a practice night without a telescope are at the end.
+finish, then explains the tools around it. Installing, updating, a practice night without a telescope and what to
+expect from this version are at the end. The About window (click the logo at the top left) shows the version you
+are running.
 
 **The short version**
 
@@ -278,6 +279,11 @@ settings, the position and the rows, with a preview of the spectrum band. The **
 what to look at (!) and what must be fixed (✗); only ✗ blocks. Type **Pair notes** if you like, then press **Load
 pair**: the pair folder is created under Processed and every later step works on this pair.
 
+You do not have to load the pair you planned: observing another target or reference than the Plan says is fine,
+and Select does not compare them. The notes under each Reduce step header only point out what affects the result:
+a reference without a spectral type or a poor flux reference, a name that differs from the stack's OBJECT, and
+missing coordinates or site position for the airmass correction.
+
 ### Geometry
 
 Straightens the spectrum so it runs exactly along the rows. **Detect** measures the tilt, or **Draw angle**: press
@@ -408,7 +414,8 @@ a new message from this tab when you are online. **Save as file…** makes the s
 
 ## When something goes wrong
 
-- **An error window**: press **Open log folder**; `error.log` has the details. Please attach it to a bug report.
+- **An error window**: press **Open log folder**; `error.log` has the details. Send a message from Help › **User Feedback** with **Attach
+  the application log** ticked (it includes the end of `error.log`).
 - **Check the installation**: run `StarExtractor.exe --selftest`; it reduces a small example without a window and
   prints `self-test PASSED`.
 - **A step is grey after you changed an earlier one**: that is on purpose; changing a step makes every later step
@@ -443,12 +450,11 @@ Star ExTractor can write a small synthetic night (target, reference, darks and b
 folders with **Process existing files**, add the darks and bias in *Pre Processing settings*, stack, and carry on
 with Reduce and Export as described below.
 
-## Version 0.1: what to expect
+## What to expect in this version
 
-This is the first public release. It supports one instrument (the Star'Ex LR with a ZWO ASI585MM Pro) on Windows.
-*Run all* (every Reduce step in one go) is hidden in this version: run the steps one by one. Uploading to AVSpec
-is done by you on the AAVSO website.
+Star ExTractor supports one instrument (the Star'Ex LR with a ZWO ASI585MM Pro) on Windows. *Run all* (every Reduce
+step in one go) is hidden for now: run the steps one by one. Uploading to AVSpec is done by you on the AAVSO website.
 
-Found a problem, or have an idea? Open an issue on the project's GitHub page
-(github.com/MBoerlage/Star-ExTractor/issues) and attach `error.log` if there was an error window. The About
-window (click the logo at the top left) shows the version you are running.
+Found a problem, or have an idea? Send it from the **User Feedback** tab in this Help window; tick **Attach the
+application log** if there was an error window. The About window (click the logo at the top left) shows the version
+you are running.

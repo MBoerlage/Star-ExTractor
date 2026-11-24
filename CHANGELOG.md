@@ -6,6 +6,10 @@
 - Select no longer warns when the loaded stacks differ from the planned pair ("Target: the Plan says
   X, Select says Y."): observing another star than planned is common.
 
+**Help**
+- "Version 0.1: what to expect" is now "What to expect in this version" and points to Help › User
+  Feedback instead of GitHub issues; Select explains that loading another pair than planned is fine.
+
 ## 0.3.0 (2026-11-24): graded reference stars and User Feedback
 
 **Plan: a new reference-star list**
