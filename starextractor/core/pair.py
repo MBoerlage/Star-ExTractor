@@ -437,19 +437,3 @@ def load_pair(session: Session, infos: dict[str, StackInfo], names: dict[str, st
                f"{infos['reference'].path.name})")
     return log
 
-
-def latest_stacks(stacks: Path | None) -> tuple[dict[str, Path | None], str]:
-    """The newest night folder in Stacks that has a target or reference stack: its newest *_target_S*.fit and
-    *_ref_S*.fit ({role: path or None}, night). ({…None}, "") when there are none."""
-    none: dict[str, Path | None] = {r: None for r in ROLES}
-    if stacks is None or not Path(stacks).is_dir():
-        return none, ""
-    nights = sorted((d for d in Path(stacks).iterdir() if d.is_dir()), key=lambda d: d.name, reverse=True)
-    for d in nights:
-        found = dict(none)
-        for role, pat in (("target", "*_target_S*.fit"), ("reference", "*_ref_S*.fit")):
-            files = sorted(d.glob(pat), key=lambda p: p.stat().st_mtime, reverse=True)
-            found[role] = files[0] if files else None
-        if any(found.values()):
-            return found, d.name
-    return none, ""

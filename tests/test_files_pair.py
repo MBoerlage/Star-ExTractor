@@ -301,29 +301,7 @@ def test_sx_block_never_reaches_later_or_exported_headers(stacks: Path, tmp_path
     assert not any(sk.is_sx(k) for k in read_header(out))
 
 
-# 8 -------------------------------------------------------------------------------------------------------------
-@pytest.mark.parametrize("present", [("target", "reference"), ("target",), ()])
-def test_use_latest_stacks(win: MainWindow, stacks: Path, present: tuple[str, ...]) -> None:
-    night = win.settings.paths().stacks / "2026-08-20"
-    night.mkdir(parents=True, exist_ok=True)
-    older = win.settings.paths().stacks / "2026-08-19"  # an older night is never picked over the newest
-    older.mkdir()
-    shutil.copy2(stacks / "Target_S.fit", older / "Old_target_S.fit")
-    shutil.copy2(stacks / "Reference_S.fit", older / "Old_ref_S.fit")
-    names = {"target": "AGDra_target_S.fit", "reference": "HD145454_ref_S.fit"}
-    for role in present:
-        shutil.copy2(stacks / f"{role.title()}_S.fit", night / names[role])
-    f = win.files_screen
-    f.use_latest()
-    msg = f.message.text()
-    if len(present) == 2:
-        assert msg == "Picked 2026-08-20: AGDra_target_S.fit and HD145454_ref_S.fit."
-        assert f.cards["target"].name.text() == "AG Dra"
-    elif present:
-        assert msg == "Picked 2026-08-20: AGDra_target_S.fit; no reference stack in that night."
-        assert f.cards["reference"].info is None
-    else:
-        assert msg == "Picked 2026-08-19: Old_target_S.fit and Old_ref_S.fit."  # the newest night with stacks
+# 8: Use Acquisition stacks is in tests/test_acq_handoff.py (the old Stacks-folder scan was removed)
 
 
 # 9 -------------------------------------------------------------------------------------------------------------
@@ -388,3 +366,25 @@ def test_run_all_needs_a_pair(win: MainWindow) -> None:
     win.run_all()
     assert win.session.log_lines[-1].endswith("Load a pair in Select first.")
     assert not (win.session.folder / "work" / "Target_G.fit").exists()
+
+
+def test_screens_fill_after_the_pair_is_stored(win: MainWindow, stacks: Path, tmp_path: Path,
+                                               monkeypatch: pytest.MonkeyPatch) -> None:
+    """Load pair stores the reference's spectral type (from Acquisition's set) before the screens refill: Response
+    already built shows "Auto · A3V", not the A0V fallback for a missing type."""
+    rs = win.ensure_screen("response")
+    assert rs.library.itemText(0) == "Auto · A0V"  # no pair yet, no spectral type
+    real = pr.side_entry
+
+    def with_type(info, name, folder, role):
+        entry = real(info, name, folder, role)
+        return {**entry, "sp_type": "A3V"} if role == "reference" else entry
+
+    monkeypatch.setattr(pr, "side_entry", with_type)
+    src = _copy_pair(stacks, tmp_path / "elsewhere")
+    f = win.files_screen
+    for role in pr.ROLES:
+        f.cards[role].set_file(src[role])
+    assert f.load_pair()
+    assert win.session.inputs["reference"]["simbad"]["sp_type"] == "A3V"
+    assert rs.library.itemText(0) == "Auto · A3V"

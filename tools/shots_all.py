@@ -46,11 +46,12 @@ class Shooter:
         self.failed: list[str] = []
         self.skipped: list[tuple[str, str]] = []
 
-    def setup(self) -> None:
+    def setup(self, keep: bool = False) -> None:
+        """keep (--only): the other shots stay; otherwise the folder starts empty."""
         for d in (self.out, self.filter_out):
             if d is None:
                 continue
-            for old in d.glob("*.png"):  # never the sub-folders of other palettes
+            for old in ([] if keep else d.glob("*.png")):  # never the sub-folders of other palettes
                 old.unlink()
             d.mkdir(parents=True, exist_ok=True)
         os.environ.setdefault("QT_QPA_PLATFORM", "offscreen")
@@ -560,6 +561,10 @@ class Shooter:
         assert a.stack_selected(), a.stack_result.text()
         self.spin(0.3, until=self.busy("acq.stack"))
         a.collect.set_index(0)
+        a.update_handoff()
+        a.scroll.verticalScrollBar().setValue(0)
+        self.shot("06e_acq_handoff_strip", "Acquisition after stacking both sets: the strip \"Both stacks are ready.\" "
+                                           "with Open in Reduce and Not now")
 
         # Reduce: Select picks the two stacks
         win.open_step(0)
@@ -616,6 +621,28 @@ class Shooter:
         self.misc(win)
         win.close()
 
+    def select_missing_shots(self, win, files) -> None:
+        """Use Acquisition stacks with the record emptied (the labelled fallback offer) and with only the target
+        recorded; the record is put back afterwards."""
+        acq = dict(win.settings["acq"] or {})
+        saved = dict(acq.get("last_stacks") or {})
+        try:
+            win.settings["acq"] = {**acq, "last_stacks": {}}
+            files.use_acquisition()
+            self.shot("07b_select_nothing_stacked", "Reduce › Select › Use Acquisition stacks with nothing recorded: "
+                                                    "\"Nothing stacked in Acquisition yet.\" and the offer from the "
+                                                    "Stacks folder (night labelled) with Use these / Cancel")
+            files.cancel_offer()
+            win.settings["acq"] = {**acq, "last_stacks": {"target": saved["target"]}}
+            files.use_acquisition()
+            self.spin(0.3, until=self.busy("preview.files.target"))
+            self.shot("07c_select_only_target", "Reduce › Select › Use Acquisition stacks with only the target "
+                                                "stacked: target filled, \"Reference not stacked yet…\"")
+        finally:
+            win.settings["acq"] = {**acq, "last_stacks": saved}
+        for c in files.cards.values():
+            c.set_file(None)
+
     def files_shots(self, win, files, pair: str, prefix: str = "") -> None:
         """Select empty, loaded from the Acquisition stacks, with an old stack, then Load pair (chevron done)."""
         from starextractor.core.fitsio import read_header, read_image, write_float32
@@ -627,9 +654,11 @@ class Shooter:
         files.notes.setPlainText("")
         self.shot(f"07{prefix}_select_empty", "Reduce › Select: nothing picked yet (two stack cards, Checks, Load "
                                              "pair, night queue)")
-        files.use_latest()
+        if not prefix:
+            self.select_missing_shots(win, files)
+        files.use_acquisition()
         self.spin(0.3, until=self.busy("preview.files.target", "preview.files.reference"))
-        self.shot(f"08{prefix}_select_loaded", f"Reduce › Select: {pair} from the Acquisition stacks (Use latest "
+        self.shot(f"08{prefix}_select_loaded", f"Reduce › Select: {pair} from the Acquisition stacks (Use Acquisition "
                                               "stacks); rows read from the file header, previews, all checks")
         old = self.tmp / f"old_stack{prefix}.fits"  # what another program writes: pixels, no name/rows/camera
         stack = files.cards["target"].info.path
@@ -639,7 +668,7 @@ class Shooter:
         files.load_pair()
         self.shot(f"08b{prefix}_select_old_stack", "Reduce › Select: an old stack (no name, rows or camera keywords): "
                                                   "✗ for the name, warnings for rows and camera; Load refused")
-        files.use_latest()
+        files.use_acquisition()
         self.spin(0.3, until=self.busy("preview.files.target", "preview.files.reference"))
         assert files.load_pair(), files.message.text()
         win.refresh_ribbon()
@@ -1028,6 +1057,30 @@ class Shooter:
                                       "keeps the loaded pair (no error colour)")
 
     # ---- index -------------------------------------------------------------------------------------------
+    def merge_index(self) -> None:
+        """--only: replace or add the rows of the shots taken; every other row stays."""
+        path = self.out / "INDEX.md"
+        old = path.read_text(encoding="utf-8").splitlines() if path.exists() else []
+        if not old:
+            self.write_index()
+            return
+        try:
+            commit = subprocess.run(["git", "rev-parse", "--short", "HEAD"], cwd=ROOT, capture_output=True,
+                                    text=True, check=True).stdout.strip() + " (+ uncommitted app changes)"
+        except (OSError, subprocess.CalledProcessError):
+            commit = "unknown"
+        when = datetime.now().strftime("%Y-%m-%d %H:%M")
+        new = {f: f"| {f} | {w} | {commit} | {when} |" for f, w in self.index}
+        out = []
+        for line in old:
+            f = line.split("|")[1].strip() if line.startswith("| ") else ""
+            out.append(new.pop(f) if f in new else line)
+        rows = [i for i, line in enumerate(out)
+                if line.startswith("| ") and line.split("|")[1].strip().endswith(".png")]
+        at = (rows[-1] + 1) if rows else len(out)
+        out[at:at] = sorted(new.values())
+        path.write_text("\n".join(out) + "\n", encoding="utf-8")
+
     def write_index(self) -> None:
         try:
             commit = subprocess.run(["git", "rev-parse", "--short", "HEAD"], cwd=ROOT, capture_output=True,
@@ -1047,20 +1100,25 @@ class Shooter:
         (self.out / "INDEX.md").write_text("\n".join(lines) + "\n", encoding="utf-8")
 
 
-def run(out: Path, palette: str = "default", filter_out: Path | None = None) -> int:
+def run(out: Path, palette: str = "default", filter_out: Path | None = None, only: list[str] | None = None) -> int:
     s = Shooter(out, palette, filter_out)
-    s.setup()
+    s.setup(keep=bool(only))
     parts = [s.splash, s.about, s.plan, s.plan_conditions, s.planned_pairs, s.plan_layout, s.dialogs, s.nova,
              s.rail, s.target_cal, s.donut, s.library, s.pair_shots]
     if palette == "default":
         parts.append(s.palettes)
+    if only:
+        parts = [p for p in parts if p.__name__ in only]
     for part in parts:
         try:
             part()
         except Exception as exc:  # noqa: BLE001 - report it, shoot the rest, fail at the end
             s.failed.append(f"{part.__name__}: {type(exc).__name__}: {exc}")
             print("FAILED", part.__name__, exc)
-    s.write_index()
+    if only:
+        s.merge_index()
+    else:
+        s.write_index()
     shutil.rmtree(s.tmp, ignore_errors=True)
     shutil.rmtree(s.public, ignore_errors=True)
     print(f"{len(s.index)} screenshots in {out}" + (f", {len(s.failed)} failed" if s.failed else ""))

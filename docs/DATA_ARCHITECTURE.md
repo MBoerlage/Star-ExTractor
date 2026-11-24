@@ -62,3 +62,16 @@ The Library (docs/LIBRARY_TAB.md) reads Stacks (unpaired target stacks, the nigh
 candidates, the sets file's reference), Processed (the pair logbooks) and Published (whether published files still
 exist). Masters are not shown. It never parses meaning from a name: roles of unpaired stacks come from the
 `_target_S` / `_ref_S` suffix only because there is no logbook yet, and names from the SX* header.
+
+## Where Reduce › Select's stacks come from (2026-11-23)
+
+- **Use Acquisition stacks** reads `acq.last_stacks` in the machine settings (`core/last_stacks.py`): per role
+  (target, reference) the stack Acquisition wrote last, its path relative to the data root, name, number of subs,
+  sub exposure, time written (UTC) and observing night. Written by Acquisition on every stack; a re-stack replaces only
+  its own role; Clear all, a new night and a restart keep it. Roles come from Acquisition's sets, never from file
+  names; "latest" is the last stack written, never guessed from timestamps.
+- Fallback when nothing is recorded: the most recent night folder in Stacks with a stack that Acquisition recorded
+  there (`acquisition.json` "stacked", else `acquisition_sets.json` "stack_file"), shown as "From the Stacks folder,
+  night YYYY-MM-DD" and used only after **Use these**. The folder of the path in a box is never scanned.
+- Browse… on Select starts in the most recent night folder of Stacks when its box is empty.
+- Acquisition's **Open in Reduce** (strip "Both stacks are ready.") runs the same fill and stops before Load pair.

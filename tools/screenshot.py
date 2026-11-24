@@ -2,6 +2,7 @@
 
     python tools/screenshot.py [--out screenshots] [--step 0..5] [--nova]
     python tools/screenshot.py --all     # every screen/state → screenshots/latest/ + INDEX.md
+    python tools/screenshot.py --all --only nova   # one part only; its INDEX rows replaced, the others kept
 
 `--nova` loads the real V8055 Sgr set (example_spectra/novasrg2026, read-only) into a temporary
 session, builds masters in a temporary library and stacks inside the app before grabbing.
@@ -62,7 +63,7 @@ def load_nova(app, win) -> None:
     win.show_tab("reduce")
     win.open_step(0)
     files = win.files_screen
-    files.use_latest()
+    files.use_acquisition()
     assert files.load_pair(), files.message.text()
     t = time.perf_counter()
     win.open_step(1)
@@ -111,6 +112,9 @@ def main() -> int:
     ap.add_argument("--size", help="WxH: grab at this window size instead of the mockup size (no compare)")
     ap.add_argument("--all", action="store_true", help="every screen and state, offscreen, to screenshots/latest/ "
                                                        "with INDEX.md (tools/shots_all.py); non-zero if any fails")
+    ap.add_argument("--only", action="append", metavar="PART",
+                    help="with --all: only these parts of tools/shots_all.py (e.g. nova); their INDEX rows are "
+                         "replaced, the others kept")
     ap.add_argument("--palette", choices=("default", "night", "red"), default=None,
                     help="with --all: only this palette's set; otherwise the palette of the shots")
     ap.add_argument("--filter-sim", action="store_true",
@@ -121,6 +125,9 @@ def main() -> int:
         from shots_all import run, run_all
 
         latest = ROOT / "screenshots" / "latest"
+        if a.only:
+            out = latest if a.palette in (None, "default") else latest / a.palette
+            return run(out, a.palette or "default", only=a.only)
         if a.palette is None:
             return run_all(latest)  # default, night and night through the filter
         out = latest if a.palette == "default" else latest / a.palette

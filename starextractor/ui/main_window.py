@@ -557,13 +557,18 @@ class MainWindow(QMainWindow):
         folder, reused = pr.pair_folder_for(paths.processed, infos, names, paths.root)
         try:
             folder.mkdir(parents=True, exist_ok=True)
-            if self.session.folder is None or Path(self.session.folder).resolve() != folder.resolve():
+            session = self.session
+            new = session.folder is None or Path(session.folder).resolve() != folder.resolve()
+            if new:
                 session = Session.load(folder) if Session.is_session(folder) else Session.create(folder)
-                self._remember(folder)
-                self._attach_session(session)  # the Reduce flow now works in this pair folder
-            lines = pr.load_pair(self.session, infos, names, data_root=paths.root, masters_root=paths.masters)
+            lines = pr.load_pair(session, infos, names, data_root=paths.root, masters_root=paths.masters)
         except OSError as exc:
             return f"Could not set up the pair folder {folder}: {exc}"
+        if new:
+            self._remember(folder)
+        # attach (or re-attach) only now: every screen fills from the pair as stored, with its names and SIMBAD
+        # types (Response's "Auto · <class>" read the type before it was there and showed A0V)
+        self._attach_session(session)
         self.session.log(f"Select: pair folder {folder} ({'reused' if reused else 'new'})")
         for line in lines:
             self.session.log(line)

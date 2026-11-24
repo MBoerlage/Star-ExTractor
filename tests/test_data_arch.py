@@ -247,9 +247,16 @@ def win(qtbot: QtBot, tmp_path: Path, night: dict):
 
 
 def _pair(w, night: dict) -> dict[str, Path]:
+    """Both stacks written as Acquisition does, and recorded in its last_stacks (what Use Acquisition stacks reads)."""
+    from starextractor.core import last_stacks as ls
+
     paths = w.settings.paths()
-    return {"target": _stack(paths, w.library, night, "target", "AG Dra"),
-            "reference": _stack(paths, w.library, night, "reference", "HD 145454")}
+    out = {"target": _stack(paths, w.library, night, "target", "AG Dra"),
+           "reference": _stack(paths, w.library, night, "reference", "HD 145454")}
+    for role, p in out.items():
+        ls.record(w.settings, role, p, name="", subs=len(night[role]), sub_exposure_s=None,
+                  written_utc="2026-08-21T03:00:00Z", observing_night=p.parent.name)
+    return out
 
 
 def test_load_pair_creates_pair_folder_work_and_logbook(win, qtbot: QtBot, night: dict) -> None:
@@ -258,8 +265,8 @@ def test_load_pair_creates_pair_folder_work_and_logbook(win, qtbot: QtBot, night
 
     stacks = _pair(win, night)
     f = win.files_screen
-    f.use_latest()
-    assert f.cards["target"].info.path == stacks["target"] and "Picked " in f.message.text()
+    f.use_acquisition()
+    assert f.cards["target"].info.path == stacks["target"] and "Filled from Acquisition" in f.message.text()
     assert f.load_pair(), f.message.text()
     paths = win.settings.paths()
     n = nm.observing_night(read_header(night["target"][0])["DATE-OBS"])
@@ -341,7 +348,7 @@ def test_logbook_atomic_unknown_fields_status_and_moved_root(tmp_path: Path, nig
 def test_notes_autosave_round_trip(win, qtbot: QtBot, night: dict) -> None:
     _pair(win, night)
     f = win.files_screen
-    f.use_latest()
+    f.use_acquisition()
     f.notes.setPlainText("typed before loading")
     assert f.load_pair()
     folder = win.session.folder

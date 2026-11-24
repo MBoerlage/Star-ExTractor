@@ -40,12 +40,12 @@ SharpCap and N.I.N.A. (FITS, 16 bit) are read directly. Other set-ups are not su
 ## Download and install
 
 1. Open the [latest release](https://github.com/MBoerlage/Star-ExTractor/releases/latest) and download
-   `StarExtractor-Setup-0.2.0.exe`. A portable zip (`StarExtractor-0.2.0-portable.zip`) is there too, for running
+   `StarExtractor-Setup-0.2.1.exe`. A portable zip (`StarExtractor-0.2.1-portable.zip`) is there too, for running
    without installing; `SHA256SUMS.txt` lists the checksums of both.
 2. Run the installer. It installs for your user account only, so no administrator rights are needed (an
    administrator can choose "install for all users" on the first page).
 3. Windows may show **"Windows protected your PC"** (Microsoft Defender SmartScreen), because the program is not
-   code-signed. Click **More info**, check that the file is *StarExtractor-Setup-0.2.0.exe*, then **Run anyway**.
+   code-signed. Click **More info**, check that the file is *StarExtractor-Setup-0.2.1.exe*, then **Run anyway**.
 4. Pick a folder, optionally tick *Create a desktop shortcut*, and finish. Start it from the Start menu
    (*Star ExTractor*). At the first start it asks where to keep your data (the *data root*).
 
@@ -68,8 +68,8 @@ reduces a small built-in example without opening a window and prints `self-test 
    checked for saturation and signal to noise while you image.
 3. **Stack** in Acquisition: add darks and bias to the master library (*Pre Processing settings*) and press
    *Stack selected* for each set. Older lights: point Acquisition at their folder with *Process existing files*.
-4. **Reduce**: in *Select*, press *Use latest stacks* (or Browse… to any two stacks) and *Load pair into the reduce
-   flow*. Then run *Geometry*, *1D Extract*, *Wavelength* and *Response*.
+4. **Reduce**: in *Select*, press *Use Acquisition stacks* (or *Open in Reduce* on Acquisition's "Both stacks are ready"
+   strip, or Browse… to any two stacks) and *Load pair*. Then run *Geometry*, *1D Extract*, *Wavelength* and *Response*.
 5. **Export → Collect data**: check the object name and fill in your AAVSO observer code, site and equipment (once;
    they are remembered).
 6. **Export → Test**, then **Publish**: save the AVSpec file (and, if you like, the 1D FITS, CSV and PNG).

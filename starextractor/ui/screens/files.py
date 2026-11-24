@@ -176,14 +176,18 @@ class StackCard(Card):
 
     # ---- picking ------------------------------------------------------------------------------------------
     def browse(self) -> None:
-        stacks = self.host.settings.paths().stacks
-        start = str(Path(self.info.path).parent) if self.info is not None else (str(stacks) if stacks.is_dir() else "")
+        """Starts in the folder of the current file, else in the most recent night of the Stacks folder."""
+        from starextractor.core import last_stacks as ls
+
+        start = (str(Path(self.info.path).parent) if self.info is not None
+                 else ls.start_dir(self.host.settings.paths().stacks))
         path = dialogs.open_file(self, f"{pr.TITLE[self.role]} stack", start, pr.FILE_FILTER)
         if path:
             self.set_file(path)
 
-    def set_file(self, path: str | Path | None, name: str | None = None) -> None:
-        """Read the header (and sets file) now, build the preview in a worker. name: keep a typed name."""
+    def set_file(self, path: str | Path | None, name: str | None = None, fallback_name: str = "") -> None:
+        """Read the header (and sets file) now, build the preview in a worker. name: keep a typed name;
+        fallback_name: the Acquisition set's name, used only when the file gives none."""
         if path is None:
             self.info = None
             self.path.clear()
@@ -193,6 +197,8 @@ class StackCard(Card):
             self.screen.update_checks()
             return
         self.info = pr.read_stack(path)
+        if self.info.ok and not self.info.name and fallback_name:
+            self.info.name, self.info.name_src = fallback_name, "Acquisition set"
         self.path.setText(shown_path(path))
         self.path.setToolTip(str(path))
         self.name.setText(name if name is not None else self.info.name)
@@ -294,19 +300,19 @@ class FilesScreen(StepScreen):
             w.setParent(None)  # Select has no per-image run: the pair is loaded below
         hd.set_files = lambda *_a: None  # type: ignore[method-assign]
         hd.set_output_ready = lambda *_a: None  # type: ignore[method-assign]
-        self.latest_btn = QPushButton("Use latest stacks")
-        self.latest_btn.setToolTip("The newest night in the Stacks folder: its newest <Name>_target_S.fit and "
-                                   "<Name>_ref_S.fit, written by Acquisition > Stack selected")
-        self.latest_btn.clicked.connect(self.use_latest)
+        self.latest_btn = QPushButton("Use Acquisition stacks")
+        self.latest_btn.setToolTip("Fill both boxes with the target and reference you just stacked in Acquisition.")
+        self.latest_btn.clicked.connect(lambda: self.use_acquisition())
         hd.layout().addWidget(self.latest_btn, 0, Qt.AlignmentFlag.AlignVCenter)
-        self.load_btn = QPushButton("Load pair")  # right of Use latest stacks: pick, then load
+        self.load_btn = QPushButton("Load pair")  # right of Use Acquisition stacks: fill, check, then load
         self.load_btn.setProperty("role", "primary")
         self.load_btn.setToolTip("Load the two stacks into the reduce flow (the pair folder, its logbook and work/)")
         self.load_btn.clicked.connect(self.load_pair)
         hd.layout().addWidget(self.load_btn, 0, Qt.AlignmentFlag.AlignVCenter)
         lay = self.body_layout
-        self.message = label("", wrap=True)  # what Use latest stacks picked, or what Load pair did
+        self.message = label("", wrap=True)  # what Use Acquisition stacks filled, or what Load pair did
         lay.addWidget(self.message)
+        lay.addWidget(self._build_offer())
         cards = QHBoxLayout()
         cards.setSpacing(16)
         self.cards = {role: StackCard(role, self) for role in pr.ROLES}
@@ -466,20 +472,87 @@ class FilesScreen(StepScreen):
         self._say("ok", "✓ Pair loaded. Next: Geometry.")
         return True
 
-    def use_latest(self) -> None:
-        """The newest night in Stacks: its newest target and reference stacks; says what it picked."""
-        found, night = pr.latest_stacks(self.host.settings.paths().stacks)
-        for role, path in found.items():
-            if path is not None:
-                self.cards[role].set_file(path)
-        picked = [f"{p.name}" for p in found.values() if p is not None]
-        missing = [pr.TITLE[r].lower() for r, p in found.items() if p is None]
-        if not picked:
-            self._say("warn", "No stacks in the Stacks folder yet. Stack in Acquisition, or Browse… for them.")
-        elif missing:
-            self._say("warn", f"Picked {night}: {picked[0]}; no {missing[0]} stack in that night.")
+    # ---- Use Acquisition stacks (core/last_stacks.py; never a folder scan) ----------------------------------
+    def _build_offer(self) -> QFrame:
+        """The fallback offer when Acquisition recorded nothing: the most recent night's stacks, to confirm."""
+        box = self.offer = QFrame()
+        row = QHBoxLayout(box)
+        row.setContentsMargins(0, 0, 0, 0)
+        row.setSpacing(8)
+        self.offer_text = label("", wrap=True)
+        row.addWidget(self.offer_text, 1)
+        self.offer_use = QPushButton("Use these")
+        self.offer_use.clicked.connect(lambda: self.accept_offer())
+        self.offer_cancel = QPushButton("Cancel")
+        self.offer_cancel.clicked.connect(lambda: self.cancel_offer())
+        row.addWidget(self.offer_use)
+        row.addWidget(self.offer_cancel)
+        box.hide()
+        self._offer: dict[str, Path] = {}
+        self._offer_night = ""
+        return box
+
+    def use_acquisition(self) -> dict[str, Path]:
+        """Fill the boxes from what Acquisition stacked last (its last_stacks record), then the checks run as after
+        Browse. Never loads the pair. Returns {role: file filled}."""
+        from starextractor.core import last_stacks as ls
+
+        self.cancel_offer()
+        rec = ls.entries(self.host.settings)
+        if not rec:
+            self._offer_fallback()
+            return {}
+        filled: dict[str, Path] = {}
+        notes: list[str] = []
+        for role in pr.ROLES:
+            e = rec.get(role)
+            if e is None:
+                notes.append(f"{pr.TITLE[role]} not stacked yet. Stack it in Acquisition or browse to a file.")
+                continue
+            why = ls.problem(e["file"])
+            if why:
+                notes.append(f"{pr.TITLE[role]} stack {e['file'].name}: {why}. Not filled.")
+                continue
+            self.cards[role].set_file(e["file"], fallback_name=str(e.get("name") or ""))
+            filled[role] = e["file"]
+        if filled:
+            parts = ", ".join(f"{role} {p.name}" for role, p in filled.items())
+            self.host.session.log(f"Select: filled from Acquisition ({parts})")
+        if notes:
+            self._say("warn" if filled else "err", " ".join(notes))
         else:
-            self._say("off", f"Picked {night}: {' and '.join(picked)}.")
+            self._say("off", "Filled from Acquisition: " + " and ".join(p.name for p in filled.values())
+                      + ". Check, then Load pair.")
+        return filled
+
+    def _offer_fallback(self) -> None:
+        from starextractor.core import last_stacks as ls
+
+        paths = self.host.settings.paths()
+        found, night = ls.night_stacks(paths.stacks, paths.root)
+        if not found:
+            self._say("warn", "Nothing stacked in Acquisition yet. Stack the target and the reference there, or "
+                              "Browse… for the files.")
+            return
+        self._say("warn", "Nothing stacked in Acquisition yet.")
+        self._offer, self._offer_night = found, night
+        files = " and ".join(f"{pr.TITLE[r].lower()} {found[r].name}" for r in pr.ROLES if r in found)
+        self.offer_text.setText(f"From the Stacks folder, night {night}: {files}.")
+        self.offer.show()
+
+    def accept_offer(self) -> None:
+        found, night = self._offer, self._offer_night
+        self.cancel_offer()
+        for role, path in found.items():
+            self.cards[role].set_file(path)
+        if found:
+            parts = ", ".join(f"{role} {p.name}" for role, p in found.items())
+            self.host.session.log(f"Select: filled from the Stacks folder, night {night} ({parts})")
+            self._say("off", f"Filled from the Stacks folder, night {night}. Check, then Load pair.")
+
+    def cancel_offer(self) -> None:
+        self._offer, self._offer_night = {}, ""
+        self.offer.hide()
 
     def _say(self, state: str, text: str) -> None:
         colour = {"ok": theme.GREEN, "err": theme.RED, "warn": theme.AMBER}.get(state, theme.MUTED)

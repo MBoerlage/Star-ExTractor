@@ -1,5 +1,22 @@
 # Changelog
 
+## 0.2.1 (2026-11-23): from Acquisition to Reduce
+
+**Reduce › Select**
+- **Use Acquisition stacks** (was Use latest stacks) fills both boxes with the target and reference you stacked last in
+  Acquisition, then runs the checks; it never loads the pair by itself. It no longer guesses from file names or folder
+  dates. If only one set is stacked, or a file is missing or not a stack, it says so and leaves that box alone. With
+  nothing recorded yet it offers the stacks of the most recent night in the Stacks folder, to confirm with Use these.
+- Browse… starts in the most recent night of the Stacks folder.
+
+**Acquisition**
+- After both sets are stacked, a strip says "Both stacks are ready." with **Open in Reduce** (Select filled and
+  checked, focus on Load pair) and **Not now**.
+
+**Fixes**
+- Response showed "Auto · A0V" right after Load pair although the reference star's type was known (the response
+  itself used the right template, e.g. A3V). The screens now fill after the pair is stored.
+
 ## 0.2.0 (2026-11-23): reliable wavelength calibration
 
 **Wavelength**

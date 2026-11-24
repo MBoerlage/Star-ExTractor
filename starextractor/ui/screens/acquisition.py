@@ -250,6 +250,7 @@ class AcquisitionScreen(QWidget):
         lay.addWidget(label("Acquisition", "title"))
         lay.addWidget(label("Watch the capture folder while you image. Each new sub is checked for saturation and "
                             "signal to noise and joins the set you are collecting for.", "muted", wrap=True))
+        lay.addWidget(self._build_handoff_strip())
         lay.addWidget(self._build_planned_strip())
         head = QVBoxLayout()
         head.setSpacing(0)
@@ -1156,6 +1157,71 @@ class AcquisitionScreen(QWidget):
         self._set_link(None)  # the names are gone: no planned pair is loaded any more
         return True
 
+    # ---- hand-off to Reduce (both stacks ready) -----------------------------------------------------------
+    def _build_handoff_strip(self) -> QFrame:
+        strip = self.handoff = QFrame()
+        strip.setObjectName("plannedStrip")
+        row = QHBoxLayout(strip)
+        row.setContentsMargins(12, 6, 8, 6)
+        row.setSpacing(8)
+        self.handoff_text = QLabel("Both stacks are ready.")
+        row.addWidget(self.handoff_text)
+        row.addStretch(1)
+        self.handoff_open = QPushButton("Open in Reduce")
+        self.handoff_open.setProperty("role", "primary")
+        self.handoff_open.setToolTip("Open Reduce › Select with both stacks filled in and checked; Load pair is "
+                                     "still yours to click")
+        self.handoff_open.clicked.connect(lambda: self.open_in_reduce())
+        row.addWidget(self.handoff_open)
+        self.handoff_later = QPushButton("Not now")
+        self.handoff_later.setFlat(True)
+        self.handoff_later.setProperty("role", "link")
+        self.handoff_later.setToolTip("Hide this until the next stack")
+        self.handoff_later.clicked.connect(lambda: self.dismiss_handoff())
+        row.addWidget(self.handoff_later)
+        strip.hide()
+        return strip
+
+    def _handoff_key(self) -> str:
+        """The two recorded stacks (by time written): "" when one is missing or no longer a stack."""
+        from starextractor.core import last_stacks as ls
+
+        rec = ls.entries(self.host.settings)
+        if any(r not in rec or ls.problem(rec[r]["file"]) for r in ROLES):
+            return ""
+        return "|".join(str(rec[r].get("written_utc") or rec[r]["path"]) for r in ROLES)
+
+    def handoff_loaded(self) -> bool:
+        """The recorded stacks are the pair loaded in Reduce now."""
+        from starextractor.core import last_stacks as ls
+        from starextractor.core.pair_state import active_pair
+
+        rec = ls.entries(self.host.settings)
+        pair = active_pair(self.host.session) or {}
+        return all(r in rec and ls.same_file(rec[r]["file"], (pair.get(r) or {}).get("source")) for r in ROLES)
+
+    def update_handoff(self) -> None:
+        key = self._handoff_key()
+        show = bool(key) and not self.handoff_loaded() and self._settings().get("handoff_dismissed") != key
+        self.handoff.setVisible(show)
+
+    def dismiss_handoff(self) -> None:
+        self._save_settings(handoff_dismissed=self._handoff_key())
+        self.update_handoff()
+
+    def open_in_reduce(self) -> None:
+        """Reduce › Select with both boxes filled from the record and checked; the focus on Load pair (never
+        loaded automatically)."""
+        self.host.open_step(0)
+        files = self.host.files_screen
+        files.use_acquisition()
+        files.load_btn.setFocus()
+
+    def showEvent(self, e) -> None:
+        super().showEvent(e)
+        if hasattr(self, "handoff"):
+            self.update_handoff()
+
     # ---- the planned pair (Plan › Load for acquisition) ------------------------------------------------------
     def _build_planned_strip(self) -> QFrame:
         strip = self.strip = QFrame()
@@ -1458,11 +1524,24 @@ class AcquisitionScreen(QWidget):
             self.host.session.log(f"Acquisition: {line}")
         self.host.session.log(f"Acquisition: {text}")
         st = self._state().setdefault("stacked", {})
+        written = datetime.now(UTC).isoformat(timespec="seconds").replace("+00:00", "Z")
         st[role] = {"file": str(Path(job["folder"]) / out), "result": text, "n": n,
-                    "subs": job["subs"], "rows": job["rows"],
-                    "time": datetime.now(UTC).isoformat(timespec="seconds").replace("+00:00", "Z")}
+                    "subs": job["subs"], "rows": job["rows"], "time": written}
         self.persist()
+        self._record_stack(role, Path(job["folder"]) / out, n, job["subs"], written)
         self._show_stack_result()
+        self.update_handoff()
+
+    def _record_stack(self, role: str, path: Path, n: int, subs: list[str], written: str) -> None:
+        """The last_stacks record (core/last_stacks.py) that Reduce › Select's Use Acquisition stacks reads."""
+        from statistics import median
+
+        from starextractor.core import last_stacks as ls
+
+        exps = [r.exptime for r in self.records if r.name in set(subs) and r.exptime]
+        ls.record(self.host.settings, role, path, name=self.names[role].text().strip(), subs=n,
+                  sub_exposure_s=float(median(exps)) if exps else None, written_utc=written,
+                  observing_night=path.parent.name)
 
     def _coords_deg(self, role: str) -> tuple[float | None, float | None]:
         d = self.sets[role]

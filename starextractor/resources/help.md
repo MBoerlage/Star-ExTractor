@@ -188,8 +188,12 @@ the stacking options (method, sigma clipping, alignment, pedestal and gain match
 
 ### Select
 
-Press **Use latest stacks** (the newest night in Stacks) or **Browse…** to any two stacks, also ones made by other
-programs. Each card shows the name (from the file header, the sets file or typed), the exposure, the camera
+Press **Use Acquisition stacks** to fill both boxes with the target and reference you stacked last in Acquisition
+(it does not load them), or **Browse…** to any two stacks, also ones made by other programs (Browse starts in the most
+recent night of the Stacks folder). If only one set is stacked, the other box is left as it is and the page says so;
+if nothing is recorded yet, it offers the stacks Acquisition wrote in the most recent night of the Stacks folder, to
+confirm with **Use these**. After stacking both sets, Acquisition shows **Both stacks are ready** with **Open in
+Reduce**, which does the same and puts the focus on **Load pair**. Each card shows the name (from the file header, the sets file or typed), the exposure, the camera
 settings, the position and the rows, with a preview of the spectrum band. The **Checks** card lists what is fine (✓),
 what to look at (!) and what must be fixed (✗); only ✗ blocks. Type **Pair notes** if you like, then press **Load
 pair**: the pair folder is created under Processed and every later step works on this pair.
