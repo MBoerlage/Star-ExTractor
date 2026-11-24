@@ -13,7 +13,7 @@ PKG = ROOT / "starextractor"
 # Every bundled data file, listed explicitly (a missing data file is the classic packaging bug).
 datas = [
     (str(PKG / "reference_spectra"), "starextractor/reference_spectra"),  # Pickles (1998) library
-    (str(PKG / "data"), "starextractor/data"),  # reference stars, telluric lines, extinction, camera table
+    (str(PKG / "data"), "starextractor/data"),  # reference_stars.csv + .meta.json, telluric lines, extinction, camera table
     (str(PKG / "resources"), "starextractor/resources"),  # logo SVGs, starex.ico, splash.png + splash@2x.png
     (str(PKG / "ui" / "icons"), "starextractor/ui/icons"),  # theme icons
     (str(PKG / "ui" / "about"), "starextractor/ui/about"),  # About splash

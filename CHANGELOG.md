@@ -1,5 +1,23 @@
 # Changelog
 
+## Unreleased
+
+**Plan: a new reference-star list**
+- The bundled list is now our own selection from SIMBAD (starex_refcat v0.1.0, preset balanced): 1595 bright B and
+  A main-sequence stars down to V 6.5, each graded good (106), ok (351) or poor (1138) with the reasons.
+- The candidates table lists the nearest good and ok stars by default; **Include poor-grade stars** adds the rest
+  in the same distance order, with the nearest good-or-ok one marked **best**. A line under the table says when a
+  closer star is graded poor, and why.
+- The **Grade** column (✓ good, ok, ! poor; the reasons as tooltip; faint and verified marks) replaces Flux ref.
+- **Faintest V** setting (2.0 to 6.5, default 6.5).
+- The chosen reference's grade goes into planned pairs and the observing plan (text and JSON); older plans and
+  pairs look it up by name.
+
+**Credits and Help**
+- About, README and THIRD_PARTY_NOTICES credit the sources of the new list (SIMBAD, VizieR, the AAVSO VSX, the
+  Washington Double Star Catalog, Pecaut and Mamajek 2013) and no longer the old list.
+- New Help section **Where the reference stars come from**: sources, rules, grades, coverage, and the limits.
+
 ## 0.2.1 (2026-11-23): from Acquisition to Reduce
 
 **Reduce › Select**

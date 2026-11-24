@@ -1,0 +1,99 @@
+{
+  "columns": [
+    "name",
+    "ra_deg",
+    "dec_deg",
+    "v_mag",
+    "b_v",
+    "sp_type",
+    "alt_ids",
+    "ebv",
+    "type_source",
+    "n_type_measurements",
+    "n_type_consistent",
+    "vsini",
+    "distance_pc",
+    "v_class",
+    "grade",
+    "reasons",
+    "reason_text",
+    "verified",
+    "notes"
+  ],
+  "config_hash": "e8f02faed9d04b59",
+  "counts": {
+    "added_for_coverage": 0,
+    "bright_colours": {
+      "listed": 69,
+      "listed_with_suspect_colour": 2,
+      "missing_bv": 0,
+      "stars": 199,
+      "suspect_by_rule": {
+        "COLOUR_MISMATCH": 8,
+        "COLOUR_MISMATCH_EXTREME": 0,
+        "EXTINCTION": 29,
+        "EXTINCTION_EXTREME": 13
+      },
+      "suspect_colour": 50,
+      "v_below": 4.0
+    },
+    "grades": {
+      "good": 106,
+      "ok": 351,
+      "poor": 1138
+    },
+    "kept": 1595,
+    "queried": 3693,
+    "rejected": 2098,
+    "type_basis": {
+      "authoritative": 204,
+      "both": 598,
+      "count": 268,
+      "none": 525,
+      "upgraded_by_authoritative": 21,
+      "upgraded_to_good_by_authoritative": 21
+    },
+    "v_class": {
+      "faint": 724,
+      "normal": 871
+    },
+    "verified": 0
+  },
+  "generated": "2026-11-24T16:50:32Z",
+  "generator_version": "0.1.0",
+  "intrinsic_colours": "Intrinsic colours of dwarfs: Pecaut & Mamajek 2013, ApJS 208, 9, Table 5 bibcode 2013ApJS..208....9P; VizieR J/ApJS/208/9/table5 (doi:10.26093/cds/vizier.22080009)",
+  "preset": "balanced",
+  "rules": {
+    "CLOSE_MULTIPLE": "soft",
+    "COLOUR_MISMATCH": "soft",
+    "COLOUR_MISMATCH_EXTREME": "hard",
+    "COMPOSITE": "hard",
+    "EMISSION": "hard",
+    "EXTINCTION": "soft",
+    "EXTINCTION_EXTREME": "hard",
+    "LUM_BRIGHT_GIANT": "hard",
+    "LUM_COLOUR_MISFIT": "hard",
+    "LUM_III": "soft",
+    "LUM_IV": "soft",
+    "LUM_MISSING": "soft",
+    "NOT_BA": "hard",
+    "NO_BV": "hard",
+    "NO_TYPE": "hard",
+    "PECULIAR": "hard",
+    "SPECTROSCOPIC_BINARY": "hard",
+    "SUSPECTED": "soft",
+    "UNCERTAIN_TYPE": "soft",
+    "VARIABLE_LARGE": "hard",
+    "VARIABLE_SMALL": "soft",
+    "WDS_DMAG_UNKNOWN": "soft"
+  },
+  "schema_version": 2,
+  "simbad_endpoints": [
+    "https://simbad.cfa.harvard.edu/simbad/sim-tap/sync"
+  ],
+  "simbad_query_hash": "7795d61e0141c111",
+  "simbad_retrieved": "2026-11-24T16:25:46Z",
+  "v_limit": 6.5,
+  "vsx_query_hash": "f14ef276b8c1243d",
+  "wds_query_hash": "953de29f0a25cbea"
+}

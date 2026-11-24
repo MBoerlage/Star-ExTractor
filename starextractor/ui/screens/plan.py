@@ -12,7 +12,10 @@ from PySide6.QtCore import Qt
 from PySide6.QtGui import QCursor, QGuiApplication
 from PySide6.QtWidgets import (
     QAbstractItemView,
+    QCheckBox,
+    QDoubleSpinBox,
     QHBoxLayout,
+    QLabel,
     QLineEdit,
     QMessageBox,
     QPlainTextEdit,
@@ -30,6 +33,7 @@ from PySide6.QtWidgets import (
 
 from starextractor.core import plan as pl
 from starextractor.core import planned_pairs as pp
+from starextractor.core import reference_stars as rs
 from starextractor.core.coords import format_dec, format_ra, parse_coords
 from starextractor.core.reference_stars import ReferenceStarMatch, find_reference_stars
 from starextractor.core.simbad import simbad_job
@@ -44,13 +48,19 @@ from ..widgets.table_cols import ProportionalColumns
 if TYPE_CHECKING:
     from ..main_window import MainWindow
 
-COLUMNS = ("Name", "Distance (°)", "V", "B−V", "Sp. type", "Flux ref")
+COLUMNS = ("Name", "Distance (°)", "V", "B−V", "Sp. type", "Grade")
 REF_WEIGHTS = [30, 12, 6, 8, 18, 14]
 GAP = 10  # row spacing and column gap, as on the other tabs
 COLUMN_MIN = 420
 PLAN_LINES = 9  # the observing plan view shows this many lines and scrolls the rest
 NUMERIC = {1, 2, 3}
 FLAG_COL = 5
+GRADE_ROLE = {"good": "grade-good", "ok": "grade-ok", "poor": "grade-poor"}
+REF_INFO = (
+    "Our own selection of bright B and A main-sequence stars from SIMBAD, each graded good, ok or poor by "
+    "documented rules.\nBy default only good and ok stars are listed, nearest first on the sky (altitude and airmass "
+    "are not considered); see Help › Where the reference stars come from. Offline.")
+INCLUDE_POOR = "Include poor-grade stars"
 
 
 class PlanScreen(QWidget):
@@ -186,11 +196,8 @@ class PlanScreen(QWidget):
 
     def _build_reference_card(self) -> Card:
         card = Card("Reference star candidates")
-        card.head.insertWidget(1, InfoButton(
-            "Nearest stars on the sky from a bundled catalog of about 1000 bright (V < 6), mostly A and B "
-            "main-sequence stars: a subset, with amendments, of the Reference Star Finder database by François "
-            "Teyssier and Paolo Berardi (data from SIMBAD). "
-            "Ranked by angular distance only: altitude, airmass and reddening are not considered. Offline."))
+        self.ref_info = InfoButton(REF_INFO)
+        card.head.insertWidget(1, self.ref_info)
         card.head.addWidget(label("Show", "muted"))
         self.n_box = QSpinBox()
         self.n_box.setRange(1, 50)
@@ -214,7 +221,7 @@ class PlanScreen(QWidget):
         self.table.setWordWrap(False)
         self.table.setVerticalScrollBarPolicy(Qt.ScrollBarPolicy.ScrollBarAlwaysOff)  # sized to its rows
         hh = self.table.horizontalHeader()
-        flag = label("! poor flux ref", "chip-warn")  # the widest thing the Flux ref column shows
+        flag = label("✓ good · best", "chip-warn")  # about the widest thing the Grade column shows
         flag.ensurePolished()
         mins = {0: 94, 2: 50, 3: 58, FLAG_COL: flag.sizeHint().width() + 14}  # Name, V, B−V values; the chip
         self.ref_columns = ProportionalColumns(self.table, REF_WEIGHTS, mins)
@@ -226,6 +233,30 @@ class PlanScreen(QWidget):
         self.table.itemSelectionChanged.connect(self._update_use_btn)
         self.table.cellDoubleClicked.connect(lambda r, _c: self.use_selected(r))
         card.body.addWidget(self.table)
+        self.poor_hint = label("", "muted", wrap=True, style="font-size: 12px;")
+        self.poor_hint.hide()
+        card.body.addWidget(self.poor_hint)
+        self.include_poor = QCheckBox(INCLUDE_POOR)  # an app setting (plan.ref_include_poor), default off
+        self.include_poor.setToolTip("Add the poor-grade stars to the list, in the same distance order, each with its "
+                                     "grade and the reasons")
+        self.include_poor.toggled.connect(self._poor_toggled)
+        opts = QHBoxLayout()  # under the table: the two list settings (app settings, never in a session or plan file)
+        opts.setSpacing(8)
+        opts.addWidget(self.include_poor)
+        opts.addStretch(1)
+        v_lbl = label("Faintest V", "muted")
+        v_lbl.setToolTip("Faintest reference star (V)")
+        opts.addWidget(v_lbl)
+        self.v_box = QDoubleSpinBox()  # an app setting (plan.ref_v_max), not part of the session or a plan file
+        self.v_box.setRange(rs.V_MIN_SETTING, rs.V_MAX)
+        self.v_box.setSingleStep(0.5)
+        self.v_box.setDecimals(1)
+        self.v_box.setValue(rs.V_MAX)
+        self.v_box.setFixedWidth(64)
+        self.v_box.setToolTip("Faintest reference star (V): stars fainter than this are not listed")
+        self.v_box.valueChanged.connect(self._v_changed)
+        opts.addWidget(self.v_box)
+        card.body.addLayout(opts)
         self.ref_status = StatusLine("off", "")
         card.body.addWidget(self.ref_status)
         card.body.addStretch(1)  # a taller card (level with the right column) keeps its rows at the top
@@ -241,6 +272,9 @@ class PlanScreen(QWidget):
         self.ra.setText("" if ra is None else format_ra(ra))
         self.dec.setText("" if dec is None else format_dec(dec))
         self.n_box.setValue(int(p.get("n", pl.DEFAULT_N)))
+        ps = self._plan_settings()
+        self.v_box.setValue(float(ps.get("ref_v_max", rs.V_MAX)))
+        self.include_poor.setChecked(bool(ps.get("ref_include_poor", False)))
         self._loading = False
         self.coord_error.hide()
         self._show_target()
@@ -338,12 +372,40 @@ class PlanScreen(QWidget):
         self.host.session.save()
         self._refresh_candidates()
 
+    def _plan_settings(self) -> dict[str, Any]:
+        return dict(self.host.settings["plan"] or {})
+
+    def _save_plan_setting(self, key: str, value: Any) -> None:
+        ps = self._plan_settings()
+        ps[key] = value
+        self.host.settings["plan"] = ps
+        self.host.settings.save()
+
+    def _v_changed(self, v: float) -> None:
+        if self._loading:
+            return
+        self._save_plan_setting("ref_v_max", float(v))
+        self._refresh_candidates()
+
+    def _poor_toggled(self, on: bool) -> None:
+        if self._loading:
+            return
+        self._save_plan_setting("ref_include_poor", bool(on))
+        self._refresh_candidates()
+
+    def grades(self) -> tuple[str, ...]:
+        return rs.GRADES if self.include_poor.isChecked() else rs.DEFAULT_GRADES
+
     def _refresh_candidates(self) -> None:
         t = pl.plan_state(self.host.session)["target"]
+        v_max = self.v_box.value()
+        hint = None
         if t.get("ra_deg") is None:
             self.matches = []
         else:
-            self.matches = find_reference_stars(t["ra_deg"], t["dec_deg"], self.n_box.value())
+            self.matches = find_reference_stars(t["ra_deg"], t["dec_deg"], self.n_box.value(), v_max, self.grades())
+            hint = rs.nearer_poor(t["ra_deg"], t["dec_deg"], v_max)
+        self._show_poor_hint(hint)
         chosen = pl.plan_state(self.host.session)["reference"]
         self.table.setRowCount(len(self.matches))
         for r, m in enumerate(self.matches):
@@ -356,7 +418,12 @@ class PlanScreen(QWidget):
                     it.setTextAlignment(Qt.AlignmentFlag.AlignRight | Qt.AlignmentFlag.AlignVCenter)
                     it.setFont(theme.mono_font(12))
                 self.table.setItem(r, c, it)
-            self._set_flag(r, pl.flux_flag(s.sp_type))
+            self.table.item(r, 0).setToolTip(self._star_tip(m))
+            self.table.item(r, 4).setToolTip(self._star_tip(m))
+            if s.grade:
+                self._set_grade(r, m)
+            else:  # a list without grades (an old file): the spectral-type flag as before
+                self._set_flag(r, pl.flux_flag(s.sp_type))
         rows = sum(self.table.rowHeight(r) for r in range(self.table.rowCount()))
         empty = 3 * self.table.verticalHeader().defaultSectionSize()
         self.table.setFixedHeight(self.table.horizontalHeader().height() + max(rows, empty)
@@ -370,6 +437,73 @@ class PlanScreen(QWidget):
         self.table.blockSignals(False)
         self._update_use_btn()
         self._show_reference()
+
+    def _show_poor_hint(self, m: ReferenceStarMatch | None) -> None:
+        """'A closer star is graded poor: …' when the nearest star in the V limit is poor and closer than the nearest
+        good-or-ok one (shown whether or not poor stars are listed)."""
+        if m is None:
+            self.poor_hint.hide()
+            self.poor_hint.setText("")
+            return
+        why = f": {m.reason_text}" if m.reason_text else ""
+        self.poor_hint.setText(f"A closer star is graded poor: {m.star.name} ({m.distance_deg:.1f}°){why}")
+        self.poor_hint.show()
+
+    @staticmethod
+    def _star_tip(m: ReferenceStarMatch) -> str:
+        """Name and Sp. type tooltip: the details that do not fit the table."""
+        s = m.star
+        parts = [f"{s.name} · {s.sp_type} · V {s.v_mag:.2f}" + (" (faint class)" if s.v_class == "faint" else "")]
+        if s.ebv is not None:
+            parts.append(f"E(B−V) {s.ebv:+.3f}")
+        if s.vsini is not None:
+            parts.append(f"v sin i {s.vsini:.0f} km/s")
+        if s.distance_pc is not None:
+            parts.append(f"{s.distance_pc:.0f} pc")
+        if s.n_type_measurements is not None:
+            parts.append(f"spectral type: {s.n_type_consistent or 0} of {s.n_type_measurements} measurements agree")
+        ids = [i.removeprefix("* ") for i in s.alt_ids if not i.startswith("Gaia")]
+        if ids:
+            parts.append(", ".join(ids))
+        return "\n".join(parts)
+
+    def _set_grade(self, row: int, m: ReferenceStarMatch) -> None:
+        """The Grade cell: the chip (text and shape carry the grade), "best" on the nearest good-or-ok star when poor
+        stars are listed too, a verified mark and the "faint" V class tag. The reasons are the tooltip."""
+        self.table.setItem(row, FLAG_COL, QTableWidgetItem(""))
+        tip = pl.grade_tip(m.grade, m.reason_text, m.verified)
+        box = QWidget()
+        box.setObjectName(f"grade_{m.grade}")
+        lay = QHBoxLayout(box)
+        lay.setContentsMargins(2, 0, 0, 0)
+        lay.setSpacing(4)
+        chip = label(pl.GRADE_CHIP[m.grade] + (" ✔" if m.verified else ""), GRADE_ROLE[m.grade])
+        chip.setObjectName("grade_chip")
+        chip.setToolTip(tip)
+        lay.addWidget(chip)
+        if m.best and self.include_poor.isChecked():
+            best = label("best", "tag")
+            best.setObjectName("grade_best")
+            best.setToolTip("The nearest good-or-ok star")
+            lay.addWidget(best)
+        if m.v_class == "faint":
+            faint = label("faint", "tag")
+            faint.setObjectName("grade_faint")
+            faint.setToolTip("V between 6.0 and 6.5: longer exposures")
+            lay.addWidget(faint)
+        lay.addStretch(1)
+        box.setToolTip(tip)
+        self.table.item(row, FLAG_COL).setToolTip(tip)
+        self.table.setCellWidget(row, FLAG_COL, box)
+
+    def grade_of(self, row: int) -> tuple[str, str, list[str]]:
+        """(grade, tooltip, tags) shown in a row's Grade cell; ("", "", []) without one."""
+        w = self.table.cellWidget(row, FLAG_COL)
+        chip = w.findChild(QWidget, "grade_chip") if w is not None else None
+        if chip is None:
+            return "", "", []
+        tags = [t.text() for t in w.findChildren(QLabel) if t.objectName() in ("grade_best", "grade_faint")]
+        return w.objectName().removeprefix("grade_"), chip.toolTip(), tags
 
     def _set_flag(self, row: int, flag: str | None) -> None:
         self.table.setItem(row, FLAG_COL, QTableWidgetItem(""))
@@ -436,8 +570,9 @@ class PlanScreen(QWidget):
     def _show_reference(self) -> None:
         ref = pl.plan_state(self.host.session)["reference"]
         if ref.get("chosen"):
+            grade = f" · {ref['grade']}" if ref.get("grade") else ""
             self.ref_status.set("ok", f"Reference: {ref['name']} · {ref['sp_type']} · V {ref['v']:.2f} · "
-                                      f"{ref['distance_deg']:.2f}° from the target")
+                                      f"{ref['distance_deg']:.2f}° from the target{grade}")
         elif not self.matches:
             self.ref_status.set("off", "Enter the target position (SIMBAD or RA/Dec) to list candidates.")
         elif self._ref_cleared:
@@ -456,8 +591,9 @@ class PlanScreen(QWidget):
             return  # already the reference: nothing changes, nothing to log
         pl.set_reference(self.host.session, m)
         self._ref_cleared = False
+        grade = f", grade {m.grade}" if m.grade else ""
         self.host.session.log(f"Plan: reference star {m.star.name} ({m.star.sp_type}, V {m.star.v_mag:.2f}, "
-                              f"{m.distance_deg:.2f}°)")
+                              f"{m.distance_deg:.2f}°{grade})")
         self._changed()
         self._refresh_candidates()
 

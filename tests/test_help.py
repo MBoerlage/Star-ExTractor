@@ -75,3 +75,29 @@ def test_help_in_the_night_palettes(win: MainWindow, qtbot: QtBot, palette: str)
                 assert np.all(g <= r + 2) and np.all(b <= r + 2), type(w).__name__
     finally:
         retheme.switch("default")
+
+
+def test_reference_star_section_matches_the_bundled_list(win: MainWindow) -> None:
+    """Where the reference stars come from: its numbers are the meta file's, it is in the contents, and the old
+    "ranked by distance only" is gone."""
+    from starextractor.core.reference_stars import meta
+
+    m = meta()
+    text = hp.help_text()
+    section = text.split("### Where the reference stars come from", 1)[1].split("\n### ", 1)[0]
+    g = m["counts"]["grades"]
+    assert (f"{m['counts']['kept']} stars: {g['good']} good, {g['ok']} ok and {g['poor']} poor" in section)
+    vc = m["counts"]["v_class"]
+    assert f"{vc['normal']} normal, {vc['faint']} faint" in section
+    assert f"starex_refcat\n**{m['generator_version']}**" in section or f"starex_refcat **{m['generator_version']}**" \
+        in section.replace("\n", " ")
+    assert f"preset **{m['preset']}**" in section
+    assert m["simbad_retrieved"][:10] in section and m["simbad_endpoints"][0] in section
+    assert "ranked by distance only" not in text.lower() and "by distance only" not in text.lower()
+    assert "Flux ref" not in text
+    win.help_btn.click()
+    dlg = win.help_dialog
+    titles = [h[1] for h in dlg.headings]
+    assert "Where the reference stars come from" in titles
+    assert titles.index("Where the reference stars come from") == titles.index("The reference star") + 1
+    dlg.close()

@@ -4,6 +4,7 @@ from __future__ import annotations
 from pathlib import Path
 
 import pytest
+from PySide6.QtWidgets import QWidget
 from pytestqt.qtbot import QtBot
 
 from starextractor.core import simbad
@@ -45,8 +46,8 @@ def test_typed_position_lists_ten_nearest(win: MainWindow) -> None:
     assert d == sorted(d)
     plan.n_box.setValue(5)
     assert plan.table.rowCount() == 5
-    _type_coords(plan, "1.945415", "-22.50856")  # exact catalog position of HD 319
-    assert plan.table.item(0, 0).text() == "HD 319" and plan.matches[0].distance_deg < 1e-3
+    _type_coords(plan, "282.470489", "32.55106")  # exact catalogue position of HD 174602 (graded good)
+    assert plan.table.item(0, 0).text() == "HD 174602" and plan.matches[0].distance_deg < 1e-3
     assert win.session.inputs["target"]["name"] == ""  # the plan does not fill in Files
 
 
@@ -167,7 +168,7 @@ def test_every_reference_change_is_logged_and_visible(win: MainWindow, qtbot: Qt
         plan.use_btn.click()
         m = plan.matches[row]
         assert _msg(_plan_lines(win)[-1]) == (f"Plan: reference star {m.star.name} ({m.star.sp_type}, "
-                                              f"V {m.star.v_mag:.2f}, {m.distance_deg:.2f}°)")
+                                              f"V {m.star.v_mag:.2f}, {m.distance_deg:.2f}°, grade {m.grade})")
         assert win.session.params["plan"]["reference"]["name"] == m.star.name
         assert plan.log.last_visible_line().endswith(_msg(_plan_lines(win)[-1]))
         selected = plan.table.selectionModel().selectedRows()[0].row()
@@ -194,27 +195,80 @@ def test_log_panel_filled_while_hidden_still_follows(qtbot: QtBot) -> None:
     assert panel.last_visible_line() == "newest"
 
 
-# ---- 2: flux-reference flags, no filtering or reordering ------------------------------------------------
-def test_flux_reference_flags(win: MainWindow, qtbot: QtBot, monkeypatch: pytest.MonkeyPatch) -> None:
+# ---- 2: the Grade column (the spectral-type flag only for rows without a grade) -------------------------------
+def test_flux_flag_is_the_fallback_without_a_grade() -> None:
     from starextractor.core.plan import FLUX_WARN_TIP, flux_flag
-    from starextractor.core.reference_stars import find_reference_stars
 
     for sp, flag in (("B2Ve", "warn"), ("B5V", "warn"), ("O9V", "warn"), ("A1Vne", "warn"), ("A0V", "good"),
                      ("A3V", "good"), ("A0Vn", "good"), ("A4V", None), ("A2IV", None), ("F0V", None)):
         assert flux_flag(sp) == flag, sp
     assert FLUX_WARN_TIP == "Emission/early type: poor flux reference"
+
+
+def test_grade_chips_tooltips_and_markers(win: MainWindow, qtbot: QtBot, monkeypatch: pytest.MonkeyPatch) -> None:
+    from starextractor.core import reference_stars as rs
+    from starextractor.core.plan import GRADE_CHIP
+
     plan = _simbad_pcyg(win, qtbot, monkeypatch)
+    assert plan.table.horizontalHeaderItem(5).text() == "Grade" and not plan.include_poor.isChecked()
     plan.n_box.setValue(30)
-    expected = find_reference_stars(PCYG.ra_deg, PCYG.dec_deg, 30)
-    assert [m.star.name for m in plan.matches] == [m.star.name for m in expected]  # same rows, same order
-    seen = set()
+    expected = rs.find_reference_stars(PCYG.ra_deg, PCYG.dec_deg, 30, 6.5, ("good", "ok"))
+    assert [m.star.name for m in plan.matches] == [m.star.name for m in expected]  # good and ok only, nearest first
     for r, m in enumerate(plan.matches):
-        flag, tip = plan.flag_of(r)
-        assert flag == flux_flag(m.star.sp_type)
-        if flag == "warn":
-            assert tip == FLUX_WARN_TIP
-        seen.add(flag)
-    assert {"warn", "good"} <= seen  # this field has both kinds
+        grade, tip, tags = plan.grade_of(r)
+        assert grade == m.grade in ("good", "ok")
+        chip = plan.table.cellWidget(r, 5).findChild(QWidget, "grade_chip")
+        assert chip.text().startswith(GRADE_CHIP[grade])
+        if m.reason_text:
+            assert m.reason_text.split("; ")[0] in tip
+        assert ("faint" in tags) == (m.v_class == "faint") and "best" not in tags  # best only with poor listed
+        assert m.star.sp_type in plan.table.item(r, 4).toolTip()
+    plan.include_poor.setChecked(True)
+    assert win.settings["plan"]["ref_include_poor"] is True
+    every = rs.find_reference_stars(PCYG.ra_deg, PCYG.dec_deg, 30, 6.5, rs.GRADES)
+    assert [m.star.name for m in plan.matches] == [m.star.name for m in every]
+    grades = [plan.grade_of(r)[0] for r in range(plan.table.rowCount())]
+    assert "poor" in grades and all(g for g in grades)  # the grade is always visible
+    best = [r for r in range(plan.table.rowCount()) if "best" in plan.grade_of(r)[2]]
+    first_good_ok = next(r for r, g in enumerate(grades) if g in ("good", "ok"))
+    assert best == [first_good_ok]
+    poor_chip = plan.table.cellWidget(grades.index("poor"), 5).findChild(QWidget, "grade_chip")
+    assert poor_chip.text() == "! poor"
+
+
+def test_verified_marker(win: MainWindow, qtbot: QtBot, monkeypatch: pytest.MonkeyPatch) -> None:
+    from dataclasses import replace
+
+    from starextractor.core import reference_stars as rs
+
+    plan = _simbad_pcyg(win, qtbot, monkeypatch)
+    m = plan.matches[0]
+    m2 = rs.ReferenceStarMatch(replace(m.star, verified=True), m.distance_deg, m.best)
+    plan._set_grade(0, m2)
+    _grade, tip, _ = plan.grade_of(0)
+    assert "✔" in plan.table.cellWidget(0, 5).findChild(QWidget, "grade_chip").text()
+    assert "Verified by hand" in tip
+
+
+def test_poor_hint_and_faintest_v(win: MainWindow) -> None:
+    from starextractor.core import reference_stars as rs
+
+    plan = win.ensure_plan()
+    near = rs.nearer_poor(282.52, 33.36)  # Sheliak: nu.01 Lyr (poor) is nearer than HD 174602 (good)
+    assert near is not None and near.star.name == "HD 174585"
+    _type_coords(plan, "18 50 04.8", "+33 21 46")
+    assert plan.poor_hint.isVisible()
+    assert plan.poor_hint.text().startswith("A closer star is graded poor: HD 174585 (0.")
+    assert near.reason_text in plan.poor_hint.text()
+    assert plan.matches[0].star.name == "HD 174602" and plan.matches[0].grade == "good"
+    _type_coords(plan, "282.470489", "32.55106")  # on HD 174602 itself: nothing nearer
+    assert not plan.poor_hint.isVisible()
+    plan.n_box.setValue(50)
+    assert any(m.v_class == "faint" for m in plan.matches)
+    plan.v_box.setValue(6.0)
+    assert win.settings["plan"]["ref_v_max"] == 6.0
+    assert plan.matches and all(m.star.v_mag <= 6.0 and m.v_class == "normal" for m in plan.matches)
+    plan.v_box.setValue(6.5)
 
 
 # ---- 4: bare coordinate copies -------------------------------------------------------------------------

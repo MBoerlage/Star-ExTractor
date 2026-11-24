@@ -46,12 +46,18 @@ def bundled_data() -> str:
     assert response.telluric_bands() and len(response.extinction()[0]) > 50
     stars = _load_catalog()
     assert len(stars) > 100
+    from .core.reference_stars import meta
+
+    m = meta()  # data/reference_stars.meta.json, bundled next to the list
+    assert m.get("generator_version") and m.get("counts", {}).get("kept") == len(stars), "reference_stars.meta.json"
+    assert all(s.grade in ("good", "ok", "poor") for s in stars), "reference star grades"
     assert camera.table()
     for p in (brand.LOGO, brand.LOGO_SMALL, brand.LOGO_ICON, brand.LOGO_ICON_SMALL, brand.ICO, about.SPLASH):
         assert p.exists(), f"missing {p.name}"
     import astropy_iers_data  # noqa: F401 - bundled so astropy never needs to download at first run
 
-    return f"{n} templates, {len(stars)} reference stars, logo, icon, splash"
+    return (f"{n} templates, {len(stars)} reference stars (starex_refcat {m['generator_version']}), logo, "
+            "icon, splash")
 
 
 def _mark(session, run) -> None:

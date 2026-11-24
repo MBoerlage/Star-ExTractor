@@ -167,6 +167,7 @@ def test_no_green_or_blue_in_the_night_palettes(win: MainWindow, qtbot: QtBot, p
     from starextractor.ui import retheme
 
     page = win.ensure_plan()
+    page.include_poor.setChecked(True)  # every grade chip, the best and faint tags and the hint are on the page
     for k, (name, ra, dec) in enumerate((("bet Cas", 2.2945, 59.1498), ("V1405 Cas", 351.1592, 61.1525),
                                          ("P Cyg", 304.4466, 38.0329))):
         pl.set_target(win.session, name, ra, dec, "simbad", None)
@@ -177,6 +178,8 @@ def test_no_green_or_blue_in_the_night_palettes(win: MainWindow, qtbot: QtBot, p
     page.pairs.load_for_acquisition(0)
     win.show_tab("plan")
     qtbot.waitUntil(lambda: page.conditions.idle() and page.pairs.idle(), timeout=5000)
+    grades = {page.grade_of(r)[0] for r in range(page.table.rowCount())}
+    assert {"good", "ok", "poor"} <= grades, grades
     retheme.switch(palette)
     try:
         page.setFocus()  # no text caret: Qt draws it inverted (docs/THEMES.md)

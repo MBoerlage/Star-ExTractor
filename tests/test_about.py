@@ -22,7 +22,8 @@ from starextractor.ui.main_window import MainWindow
 
 ROOT = Path(__file__).resolve().parents[1]
 
-# The approved wording (2026-11-20), typed here on its own so a change to about.py cannot also change the test.
+# The approved wording (2026-11-20; reference star list and VizieR 2026-11-24), typed here on its own so a
+# change to about.py cannot also change the test.
 APPROVED = (
     ("title", "STAR EXTRACTOR"),
     ("sub", "Spectroscopy reduction for low-resolution slit spectrographs"),
@@ -34,15 +35,16 @@ APPROVED = (
     ("text", "Publications of the Astronomical Society of the Pacific, 110, 863–878."),
     ("gap", ""),
     ("label", "Reference star list"),
-    ("text", "A subset, with amendments, of the Reference Star Finder database"),
-    ("text", "by François Teyssier and Paolo Berardi (data from SIMBAD)"),
+    ("text", "Our own selection of bright B and A dwarfs, generated from"),
+    ("text", "SIMBAD, the AAVSO VSX and the Washington Double Star Catalog"),
     ("gap", ""),
     ("label", "Spectrum submission and variable star data"),
     ("text", "AAVSO Spectroscopy Database (AVSpec) and Variable Star Index (VSX)"),
     ("gap", ""),
     ("label", "Target lookup"),
     ("text", "This application has made use of the SIMBAD database,"),
-    ("text", "operated at CDS, Strasbourg, France."),
+    ("text", "operated at CDS, Strasbourg, France, and of the VizieR"),
+    ("text", "catalogue access tool, CDS, Strasbourg, France."),
     ("gap", ""),
     ("label", "Built with"),
     ("text", "Python, PySide6 (Qt), NumPy, SciPy, Astropy, pyqtgraph"),
@@ -60,17 +62,20 @@ APPROVED = (
 BLOCKS = [  # (label, its text lines joined with single spaces), in order
     ("Stellar flux library", "Pickles, A. J. (1998). “A Stellar Spectral Flux Library: 1150–25000 Å.” Publications "
                              "of the Astronomical Society of the Pacific, 110, 863–878."),
-    ("Reference star list", "A subset, with amendments, of the Reference Star Finder database by François Teyssier "
-                            "and Paolo Berardi (data from SIMBAD)"),
+    ("Reference star list", "Our own selection of bright B and A dwarfs, generated from SIMBAD, the AAVSO VSX and "
+                            "the Washington Double Star Catalog"),
     ("Spectrum submission and variable star data",
      "AAVSO Spectroscopy Database (AVSpec) and Variable Star Index (VSX)"),
-    ("Target lookup", "This application has made use of the SIMBAD database, operated at CDS, Strasbourg, France."),
+    ("Target lookup", "This application has made use of the SIMBAD database, operated at CDS, Strasbourg, France, "
+                      "and of the VizieR catalogue access tool, CDS, Strasbourg, France."),
     ("Built with", "Python, PySide6 (Qt), NumPy, SciPy, Astropy, pyqtgraph"),
     ("With thanks and inspiration", "The STAROS Projects community, the AAVSO Spectroscopy SIG, the Society for "
      "Astronomical Sciences (SAS), the BASS Project, Tom Field (RSpec), the French amateur spectroscopy community, "
      "and many others."),
 ]
-OLD = ("slit low res", "Francois Teyssier", "Reference star database", "Target resolution")
+OLD = ("slit low res", "Francois Teyssier", "Reference star database", "Target resolution", "Teyssier", "Berardi",
+       "Reference Star Finder", "subset, with amendments")
+OLD_LIST_CREDIT = ("Teyssier", "Berardi", "Reference Star Finder", "subset, with amendments")
 
 
 def _blocks(credits) -> list[tuple[str, str]]:
@@ -212,3 +217,16 @@ def test_dark_room_palettes_render_the_roll(qtbot: QtBot, palette: str) -> None:
         assert np.all(r >= g) and np.all(g >= b)  # warm only: no green or blue light
     finally:
         theme.set_palette("default", emit=False)
+
+
+def test_old_reference_list_credit_is_gone_from_user_facing_text() -> None:
+    """The list is our own now: About, README, THIRD_PARTY_NOTICES, the Help guide and the Plan card never name the
+    old one (CHANGELOG history is left as it was)."""
+    from starextractor.ui.screens.plan import REF_INFO
+
+    sources = {"About CREDITS": " ".join(t for _s, t in CREDITS), "Plan card (i)": REF_INFO}
+    for f in ("README.md", "THIRD_PARTY_NOTICES.md", "starextractor/resources/help.md"):
+        sources[f] = (ROOT / f).read_text(encoding="utf-8")
+    hits = [f"{name}: {old}" for name, text in sources.items() for old in OLD_LIST_CREDIT
+            if old.lower() in text.lower()]
+    assert not hits, hits

@@ -65,11 +65,91 @@ or **Manual**. The small copy buttons copy the bare RA or Dec for your capture p
 
 ### The reference star
 
-**Reference star candidates** lists the nearest bright stars on the sky from a bundled catalogue (about 1000 stars
-brighter than V 6, mostly A and B main-sequence stars; offline). Pick a row and press **Use as reference** (or
-double-click it). The *Flux ref* column helps: **✓ good** marks A0–A3 V stars without emission, the best flux
-references; **! poor flux ref** marks emission or early (O, B) types. The list is ranked by distance only: check the
-altitude yourself in the sky plots. Emission-line stars are never listed.
+**Reference star candidates** lists bright B and A main-sequence stars near the target on the sky, from a list
+bundled with the app (offline). Every star has a **grade**: **✓ good**, **ok** or **! poor**; hold the mouse over
+the grade for the reasons. By default only good and ok stars are listed, nearest first; the list is sorted by
+distance on the sky within the grades shown, never by distance alone. Pick a row and press **Use as reference** (or
+double-click it).
+
+- **Include poor-grade stars** (under the table, off by default) adds the poor stars into the same distance order,
+  each with its grade; the nearest good-or-ok star then carries a **best** tag.
+- When a poor star is closer than the nearest good or ok one, a line under the table says so: *A closer star is
+  graded poor: HD n (x.x°): the reasons*.
+- **Faintest V** (next to it, 2.0 to 6.5, default 6.5) leaves out stars fainter than that, for a small telescope or
+  short exposures. A small **faint** tag marks stars between V 6.0 and 6.5; **✔** marks a star we checked by hand.
+- The Name and Sp. type tooltips show E(B−V), v sin i, the distance and how many spectral-type measurements agree.
+
+Altitude and airmass are not taken into account: check them in the sky plots. Emission-line stars are never listed.
+The app remembers both settings. The next section says where the list comes from.
+
+### Where the reference stars come from
+
+The list is our own selection, made by fixed rules from public catalogues by a separate program (starex_refcat
+**0.1.0**, preset **balanced**). The app never changes it and never goes online for it.
+
+**Sources and dates**
+- **SIMBAD** (queried through its TAP service, mirror https://simbad.cfa.harvard.edu/simbad/sim-tap/sync; data
+  retrieved 2026-11-24): positions, V and B magnitudes, the adopted spectral type and every other spectral-type
+  measurement, object types, rotation (v sin i) and parallaxes.
+- **VizieR** (CDS) for two catalogues: the **AAVSO International Variable Star Index (VSX)**, to find variables and
+  their amplitudes, and the **Washington Double Star Catalog (WDS)**, to find close companions.
+- **Pecaut and Mamajek (2013)**, Table 5: the intrinsic colours of dwarf stars, used to estimate reddening.
+
+**Which stars are in it**
+- Stars whose SIMBAD spectral type is B or A, from V 2.0 to V 6.5, over the whole sky. **Normal**: V up to 6.0
+  (bright stars included); **faint**: 6.0 to 6.5.
+- Main-sequence stars (class V) keep the full grade. Subgiants (IV, IV-V), giants (III, III-IV) and stars without a
+  luminosity class are kept with a lower grade when their colour fits their type.
+
+**Never listed** (hard rules)
+- a spectral type that cannot be read or has no subclass; not a B or A type; B or V magnitude missing;
+- supergiants and bright giants (classes I and II);
+- a giant or subgiant whose colour does not fit its type;
+- emission-line or shell stars: "e", "(e)", "sh" or "shell" in the type or in any SIMBAD measurement, or a SIMBAD
+  emission-line object type;
+- chemically peculiar or peculiar spectra (p, m, Am, element codes such as Si or HgMn, λ Boo, weak-lined);
+- composite spectra ("+" in the type, or "/" between two spectral types such as B9/A0V);
+- spectroscopic, eclipsing and ellipsoidal binaries (SIMBAD object type, a VSX eclipsing type, or "SB" in a
+  measurement);
+- large-amplitude variables: a VSX amplitude above 0.1 mag, or a Cepheid, RR Lyrae, Mira or other long-period type;
+- E(B−V) above 0.15, or below −0.15 (far bluer than the type), or no intrinsic colour for the type.
+
+**Kept with a lower grade** (soft rules)
+- giant (III or III-IV): at most poor; subgiant (IV): at most ok; no luminosity class: at most poor;
+- uncertain spectral type (":" or "?", a range wider than one subclass, or at least two, or more than half, of the
+  MK measurements disagreeing by more than one subclass or one luminosity class): at most poor;
+- variable with an amplitude of 0.1 mag or less, or unknown (a SIMBAD variable type, or a VSX variable): at most poor;
+- suspected variable or candidate binary or peculiar star (VSX or SIMBAD): at most poor;
+- a WDS companion within 6″ and no more than 4 magnitudes fainter, or within 6″ with no magnitude: at most poor;
+- E(B−V) from 0.05 to 0.15, or from −0.15 to −0.05 (bluer than the type): at most poor.
+
+**Reddening.** E(B−V) is the star's B−V from SIMBAD minus the B−V a dwarf of its spectral type has (Pecaut and
+Mamajek 2013, interpolated between listed subclasses). Giants and subgiants use the dwarf colours too, which is why
+one whose colour does not fit is left out.
+
+**Grades.** A star gets the lowest grade any of its reasons allows.
+- **good**: A0 to A3, class V, no broad-line code (n or nn), E(B−V) at most 0.03, v sin i at most 150 km/s (when
+  known), within 300 pc, and at least two MK spectral-type measurements that agree, or one agreeing type from an
+  expert MK survey (for example Cowley et al. 1969, Gray and Garrison, Abt and Morrell 1995, Osawa 1959); and none
+  of the soft rules above.
+- **ok** at best: B8 to B9.5 or A4 to A5; class IV-V or IV; broad lines (n); v sin i 150 to 250 km/s; E(B−V) 0.03
+  to 0.05; fewer agreeing type measurements than good needs; farther than 300 pc; no parallax.
+- **poor**: earlier than B8 or later than A5; very broad lines (nn); v sin i above 250 km/s; no MK classification;
+  any soft rule except subgiant.
+
+**What is in this version**: 1595 stars: 106 good, 351 ok and 1138 poor (871 normal, 724 faint; none verified by
+hand yet). 99.3 % of the sky has a good or ok star within 15° (V 6.5 or brighter); counting only stars above 30°
+altitude, 98.1 % to 99.8 % for observers at latitudes from +60° to −60°. The largest gap is 17.6° to the nearest good
+or ok star (around RA 12h, Dec +37°), with a poor star 3.5° away.
+
+**Assumptions and limits**
+- SIMBAD's spectral types come from many catalogues of very different ages and quality; the rules read what is
+  written there, not what the star is.
+- **good** means a likely match to the library spectrum of the same type, not a guarantee.
+- The list is sorted by distance on the sky, not by altitude or airmass.
+- The grades have not yet been checked against our own observations.
+- Stars brighter than V 4 are included on purpose: shorten the exposure time.
+- The list can change between versions of the app; it is regenerated outside the app.
 
 ### Observing conditions: when is it up?
 

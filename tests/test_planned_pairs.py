@@ -379,3 +379,51 @@ def test_core_round_trip_and_merge() -> None:
     with pytest.raises(ValueError):
         pp.pairs_from_doc("[]")
     assert pp.pairs_from_doc({"target": {"name": "X", "ra_deg": 1, "dec_deg": 2}, "reference": None})[0]["target"]
+
+
+# ---- grades of the reference star (starex_refcat list) -----------------------------------------------------------
+def test_pairs_and_plan_files_carry_the_reference_grade(win: MainWindow) -> None:
+    page = win.ensure_plan()
+    pl.set_target(win.session, "Sheliak", 282.52, 33.3628, "simbad", None)
+    page.load_session()
+    page.use_selected(0)  # HD 174602, graded good
+    ref = win.session.params["plan"]["reference"]
+    assert ref["name"] == "HD 174602" and ref["grade"] == "good" and ref["v_class"] == "normal"
+    assert ref["reasons"] == [] and ref["verified"] is False
+    page.pairs.add_pair()
+    pair = page.pairs.pairs[-1]
+    assert pair["reference"]["grade"] == "good"
+    text = pp.plan_text([pair], None)
+    assert "Grade good" in text
+    doc = json.loads(pp.plan_json([pair], None))
+    assert doc["pairs"][0]["reference"]["grade"] == "good" and "reason_text" in doc["pairs"][0]["reference"]
+    back = pp.pairs_from_doc(doc)[0]
+    assert back["reference"]["grade"] == "good"
+    # a poor reference carries its reasons into the text
+    from starextractor.core.reference_stars import star_by_name
+
+    poor = star_by_name("HD 174585")
+    pair2 = pp.normalise({"target": {"name": "Sheliak", "ra_deg": 282.52, "dec_deg": 33.36},
+                          "reference": {"name": poor.name, "ra_deg": poor.ra, "dec_deg": poor.dec, "vmag": poor.v_mag}})
+    assert pair2["reference"]["grade"] == "poor"
+    assert f"Grade poor: {poor.reason_text}" in pp.plan_text([pair2], None)
+
+
+def test_older_pairs_and_plans_resolve_the_grade_by_name() -> None:
+    old_doc = {"kind": pp.PLAN_FILE_KIND, "version": 1, "pairs": [
+        {"id": "a1", "target": {"name": "Sheliak", "ra_deg": 282.52, "dec_deg": 33.36},
+         "reference": {"name": "HD 174602", "ra_deg": 282.470489, "dec_deg": 32.55106, "vmag": 5.23}},
+        {"id": "a2", "target": {"name": "X", "ra_deg": 10.0, "dec_deg": 10.0},
+         "reference": {"name": "HD 999999999", "ra_deg": 10.5, "dec_deg": 10.0}}]}
+    pairs = pp.pairs_from_doc(json.dumps(old_doc))
+    assert pairs[0]["reference"]["grade"] == "good"
+    assert pairs[1]["reference"]["grade"] == ""  # not in the list: blank, never guessed
+    assert "Grade" not in pp.plan_text([pairs[1]], None).split("Reference:")[1]
+    one_pair = {"target": {"name": "Sheliak", "ra": "18 50 04.8", "dec": "+33 21 46"},  # before planned pairs
+                "reference": {"name": "HD 174602", "ra": "18 49 52.9", "dec": "+32 33 04"}}
+    assert pp.pairs_from_doc(one_pair)[0]["reference"]["grade"] == "good"
+    s = Session(None)  # a session saved before grades
+    s.params["plan"] = {"reference": {"name": "HD 174602", "sp_type": "A3V", "chosen": True, "v": 5.23,
+                                      "ra": 282.47, "dec": 32.55, "distance_deg": 0.8}}
+    assert pl.plan_state(s)["reference"]["grade"] == "good"
+    assert pp.load({"pairs": {"version": 1, "items": old_doc["pairs"]}})[0]["reference"]["grade"] == "good"

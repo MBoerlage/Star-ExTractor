@@ -3,7 +3,8 @@
 
 Stored in the settings, `plan.pairs` = {"version": 1, "items": [pair, …]}. A pair holds only what the user chose:
 id, target (name, RA/Dec in degrees and their source simbad | manual, V, spectral type), reference (name, RA/Dec,
-V, spectral type, distance on the sky; or None), a free-text note and the created time. Visibility, Moon
+V, spectral type, distance on the sky, and its grade from the bundled list: grade, reasons, reason_text, v_class,
+verified; or None), a free-text note and the created time. Visibility, Moon
 separation and status are computed when shown, never stored. The observing location is never stored with a pair
 or written to a plan file (docs/PLAN_TAB.md). No Qt.
 """
@@ -48,8 +49,23 @@ def _reference(d: Any) -> dict[str, Any] | None:
     t = _target(d)
     if t is None or t["ra_deg"] is None:
         return None
-    return {"name": t["name"], "ra_deg": t["ra_deg"], "dec_deg": t["dec_deg"], "vmag": t["vmag"],
-            "sp_type": t["sp_type"], "distance_deg": _num((d or {}).get("distance_deg"))}
+    out = {"name": t["name"], "ra_deg": t["ra_deg"], "dec_deg": t["dec_deg"], "vmag": t["vmag"],
+           "sp_type": t["sp_type"], "distance_deg": _num((d or {}).get("distance_deg"))}
+    return out | _grade(d)
+
+
+def _grade(d: dict[str, Any]) -> dict[str, Any]:
+    """The reference's grade as stored; a pair saved before grades resolves it by name from the bundled list
+    (blank when the star is not there)."""
+    from .plan import grade_fields
+
+    if "grade" not in d:
+        return grade_fields(str(d.get("name") or ""))
+    reasons = d.get("reasons") or []
+    return {"grade": str(d.get("grade") or ""),
+            "reasons": [str(r) for r in (reasons if isinstance(reasons, list) else str(reasons).split("+")) if r],
+            "reason_text": str(d.get("reason_text") or ""), "v_class": str(d.get("v_class") or ""),
+            "verified": bool(d.get("verified"))}
 
 
 def normalise(d: Any) -> dict[str, Any] | None:
@@ -78,7 +94,8 @@ def from_editor(plan_state: dict[str, Any], note: str = "") -> dict[str, Any] | 
     ref = None
     if r.get("chosen"):
         ref = {"name": r["name"], "ra_deg": r.get("ra"), "dec_deg": r.get("dec"), "vmag": r.get("v"),
-               "sp_type": r.get("sp_type", ""), "distance_deg": r.get("distance_deg")}
+               "sp_type": r.get("sp_type", ""), "distance_deg": r.get("distance_deg"),
+               **{k: r[k] for k in ("grade", "reasons", "reason_text", "v_class", "verified") if k in r}}
     return normalise({"id": new_id(), "created": now_iso(), "note": note, "reference": ref,
                       "target": {"name": t.get("name"), "ra_deg": t.get("ra_deg"), "dec_deg": t.get("dec_deg"),
                                  "source": t.get("source"), "vmag": t.get("vmag"), "sp_type": t.get("sp_type")}})
@@ -91,7 +108,8 @@ def to_editor(pair: dict[str, Any]) -> tuple[dict[str, Any], dict[str, Any]]:
               "vmag": t["vmag"], "otype": "", "simbad_id": t["name"] if t["source"] == "simbad" else "",
               "sp_type": t["sp_type"]}
     ref = ({"name": r["name"], "ra": r["ra_deg"], "dec": r["dec_deg"], "v": r["vmag"], "bv": None,
-            "sp_type": r["sp_type"], "distance_deg": r["distance_deg"], "chosen": True} if r else {})
+            "sp_type": r["sp_type"], "distance_deg": r["distance_deg"], "chosen": True,
+            **{k: r.get(k) for k in ("grade", "reasons", "reason_text", "v_class", "verified")}} if r else {})
     return target, ref
 
 
@@ -224,8 +242,12 @@ def plan_text(pairs: list[dict[str, Any]], conditions: dict[str, Any] | None,
             return [f"  {kind + ':':<11} -"]
         pos = _pos(s["ra_deg"], s["dec_deg"])
         extra = f"  ({s['sp_type']})" if s.get("sp_type") else ""
-        return [f"  {kind + ':':<11} {s['name']}{extra}",
-                f"  {'':<11} V {mag(s['vmag'])}   RA {pos['ra'] or '-'}   Dec {pos['dec'] or '-'}"]
+        out = [f"  {kind + ':':<11} {s['name']}{extra}",
+               f"  {'':<11} V {mag(s['vmag'])}   RA {pos['ra'] or '-'}   Dec {pos['dec'] or '-'}"]
+        if s.get("grade"):
+            why = f": {s['reason_text']}" if s.get("reason_text") else ""
+            out.append(f"  {'':<11} Grade {s['grade']}{' (verified)' if s.get('verified') else ''}{why}")
+        return out
 
     lines: list[str] = []
     if conditions:

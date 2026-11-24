@@ -1,4 +1,4 @@
-"""Tests for the spectroscopic reference-star finder (ported from SpectroTargetTool, imports adjusted)."""
+"""Tests for the spectroscopic reference-star finder (core/reference_stars.py) on the bundled list."""
 
 from starextractor.core.reference_stars import _load_catalog, find_reference_stars
 
@@ -20,9 +20,9 @@ class TestFindReferenceStars:
         assert all(d >= 0 for d in distances)
 
     def test_exact_catalog_position_returns_itself_first(self):
-        # HD 319 is the catalog's first entry
-        matches = find_reference_stars(target_ra=1.945415, target_dec=-22.50856, n=5)
-        assert matches[0].star.name == "HD 319"
+        # HD 224926 is the catalogue's first entry (graded poor: every grade is asked for)
+        matches = find_reference_stars(target_ra=0.456034, target_dec=-3.027503, n=5, grades=None)
+        assert matches[0].star.name == "HD 224926"
         assert matches[0].distance_deg < 1e-3
 
     def test_result_fields_populated(self):
@@ -54,12 +54,12 @@ def test_emission_line_stars_are_never_offered():
     with open(_CATALOG_PATH, encoding="utf-8") as f:
         rows = list(csv.DictReader(f))
     stars = _load_catalog()
-    assert len(stars) == len(rows) - sum(is_emission(r["sp_type"]) for r in rows) == 968
+    assert len(stars) == len(rows) - sum(is_emission(r["sp_type"]) for r in rows) == 1595  # none dropped
     assert not any(is_emission(s.sp_type) for s in stars)
     # all-sky sweep: no emission star ever comes back
     for ra in range(0, 360, 30):
         for dec in (-60, -30, 0, 30, 60):
-            assert not any(is_emission(m.star.sp_type) for m in find_reference_stars(ra, dec, 50))
+            assert not any(is_emission(m.star.sp_type) for m in find_reference_stars(ra, dec, 50, grades=None))
 
 
 def test_saved_emission_reference_is_cleared():

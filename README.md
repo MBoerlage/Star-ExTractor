@@ -15,7 +15,7 @@ computer; nothing is uploaded for you.
 
 | | |
 |---|---|
-| **Plan** | Look up the target in SIMBAD (or type RA/Dec), pick a nearby reference star from a bundled catalogue, see when both are up and where the Moon is, and keep a list of target + reference pairs for the night. Copy or save the observing plan. |
+| **Plan** | Look up the target in SIMBAD (or type RA/Dec), pick a nearby reference star from our graded list of bright B and A stars, see when both are up and where the Moon is, and keep a list of target + reference pairs for the night. Copy or save the observing plan. |
 | **Acquisition** | Watch the folder your capture program writes to. Every sub is checked for saturation and signal to noise as it arrives; build master darks and bias and stack the good subs. |
 | **Reduce** | Select a target and reference stack, then Geometry (tilt and smile), 1D Extract, Wavelength (Balmer lines of the reference, a target-specific shift from sky and telluric lines) and Response (the reference star against a Pickles template). |
 | **Export** | Collect the observer and equipment data once, run the AVSpec pre-flight checks, publish the AVSpec FITS file (plus 1D FITS, CSV and PNG if you like). |
@@ -161,15 +161,16 @@ Pickles, A. J. (1998). “A Stellar Spectral Flux Library: 1150–25000 Å.”
 Publications of the Astronomical Society of the Pacific, 110, 863–878.  
 
 **Reference star list**  
-A subset, with amendments, of the Reference Star Finder database  
-by François Teyssier and Paolo Berardi (data from SIMBAD)  
+Our own selection of bright B and A dwarfs, generated from  
+SIMBAD, the AAVSO VSX and the Washington Double Star Catalog  
 
 **Spectrum submission and variable star data**  
 AAVSO Spectroscopy Database (AVSpec) and Variable Star Index (VSX)  
 
 **Target lookup**  
 This application has made use of the SIMBAD database,  
-operated at CDS, Strasbourg, France.  
+operated at CDS, Strasbourg, France, and of the VizieR  
+catalogue access tool, CDS, Strasbourg, France.  
 
 **Built with**  
 Python, PySide6 (Qt), NumPy, SciPy, Astropy, pyqtgraph  

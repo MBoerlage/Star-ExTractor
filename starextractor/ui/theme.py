@@ -237,6 +237,12 @@ QLabel[role="chip-warn"] {{ font-family: "{mono}"; font-size: 11px; color: {AMBE
     border-radius: 5px; padding: 1px 6px; background: transparent; }}
 QLabel[role="chip-ok"] {{ font-family: "{mono}"; font-size: 11px; color: {DONE_TEXT}; border: 1px solid {DONE_BG};
     border-radius: 9px; padding: 1px 8px; background: {DONE_BG}; font-weight: 600; }}
+QLabel[role="grade-good"] {{ font-family: "{mono}"; font-size: 11px; color: {GREEN}; border: 1px solid {GREEN};
+    border-radius: 5px; padding: 1px 6px; background: transparent; font-weight: 600; }}
+QLabel[role="grade-ok"] {{ font-family: "{mono}"; font-size: 11px; color: {TEXT}; border: 1px solid {BORDER};
+    border-radius: 5px; padding: 1px 6px; background: transparent; }}
+QLabel[role="grade-poor"] {{ font-family: "{mono}"; font-size: 11px; color: {AMBER}; border: 1px dashed {AMBER_DIM};
+    border-radius: 5px; padding: 1px 6px; background: transparent; }}
 QLabel[role="tag"] {{ font-size: 11px; color: {MUTED}; border: 1px solid {BORDER}; border-radius: 4px;
     padding: 0 5px; background: transparent; }}
 QFrame#plannedStrip {{ background: {CARD}; border: 1px solid {LINE}; border-left: 3px solid {AMBER};

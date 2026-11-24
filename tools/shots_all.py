@@ -175,6 +175,18 @@ class Shooter:
                       f"About: the credit roll at the {key} of its loop ({what})", dlg)
             dlg.close()
         if self.palette == "default":
+            from starextractor.ui.about import CREDITS, LINE_H
+
+            at = next(i for i, (st, t) in enumerate(CREDITS) if st == "label" and t == "Reference star list")
+            dlg = AboutDialog(None, animate=True)
+            dlg.roll.timer.stop()
+            above = sum(LINE_H.get(st, 21) for st, _ in CREDITS[:at])
+            dlg.roll.offset = ROLL_H + above - ROLL_H / 2 + 20  # the reference-star and target-lookup credits in view
+            dlg.show()
+            self.spin(0.2)
+            self.shot("22g_about_reference_credit", "About: the credit roll at the Reference star list (our own "
+                      "selection from SIMBAD, the AAVSO VSX and the WDS) and Target lookup (SIMBAD and VizieR)", dlg)
+            dlg.close()
             dlg = AboutDialog(None, animate=False)
             dlg.show()
             self.spin(0.2)
@@ -221,7 +233,8 @@ class Shooter:
         finally:
             simbad.lookup = real
         self.shot("02_plan_simbad_candidates", "Plan: P Cyg resolved (SIMBAD answer fixed for the run), the 10 "
-                                               "nearest reference candidates with flux flags")
+                                               "nearest good and ok reference candidates with their Grade chips")
+        self.plan_grades(win, plan)
         plan.use_selected(0)
         sa = plan.copy_target_btn
         while sa is not None and not hasattr(sa, "ensureWidgetVisible"):
@@ -231,6 +244,33 @@ class Shooter:
         self.shot("03_plan_observing_plan", "Plan: reference chosen; observing plan with target and reference side "
                                             "by side and the RA/Dec copy buttons")
         win.close()
+
+    def plan_grades(self, win, plan) -> None:
+        """The reference list around Sheliak: the nearer-poor hint, Include poor-grade stars (best tag), Faintest V
+        6.0; then back to P Cyg with the default settings."""
+        from starextractor.core import plan as pl
+
+        old = pl.plan_state(win.session)["target"]
+        pl.set_target(win.session, "Sheliak", 282.51998, 33.36278, "manual", None)
+        plan.load_session()
+        self.spin(0.2)
+        card = plan.table.parentWidget()
+        while card is not None and card.property("role") != "card":
+            card = card.parentWidget()
+        self.shot("02b_plan_poor_hint", "Plan around Sheliak: good and ok stars only; the line under the table says a "
+                                        "closer star is graded poor (HD 174585) and why", card)
+        plan.include_poor.setChecked(True)
+        self.spin(0.2)
+        self.shot("02c_plan_include_poor", "Include poor-grade stars on: poor stars in the same distance order, each "
+                                           "with its grade; the nearest good-or-ok star tagged best", card)
+        plan.include_poor.setChecked(False)
+        plan.v_box.setValue(6.0)
+        self.spin(0.2)
+        self.shot("02d_plan_faintest_v", "Faintest V set to 6.0: the faint (6.0-6.5) stars are left out", card)
+        plan.v_box.setValue(6.5)
+        pl.set_target(win.session, old["name"], old["ra_deg"], old["dec_deg"], old["source"], None)
+        plan.load_session()
+        self.spin(0.2)
 
     def plan_conditions(self) -> None:
         """Plan › Observing conditions at McDonald Observatory (a public site) on 2026-11-20; "now" fixed inside the
@@ -428,6 +468,10 @@ class Shooter:
         self.shot("34_help_me", "Help me (top row, F1): the workflow guide with its contents and find field, open at "
                   "Planned pairs", dlg)
         self.shot("34a_topbar_help", "The top row with the Help me button", win.topbar)
+        dlg.show_section("Where the reference stars come from")
+        self.spin(0.3)
+        self.shot("34b_help_reference_stars", "Help me at Where the reference stars come from: sources and dates, the "
+                  "stars listed, the rules, grades, coverage and limits", dlg)
         dlg.close()
         win.close()
 
