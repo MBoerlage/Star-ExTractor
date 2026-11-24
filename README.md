@@ -40,12 +40,12 @@ SharpCap and N.I.N.A. (FITS, 16 bit) are read directly. Other set-ups are not su
 ## Download and install
 
 1. Open the [latest release](https://github.com/MBoerlage/Star-ExTractor/releases/latest) and download
-   `StarExtractor-Setup-0.3.0.exe`. A portable zip (`StarExtractor-0.3.0-portable.zip`) is there too, for running
+   `StarExtractor-Setup-0.3.1.exe`. A portable zip (`StarExtractor-0.3.1-portable.zip`) is there too, for running
    without installing; `SHA256SUMS.txt` lists the checksums of both.
 2. Run the installer. It installs for your user account only, so no administrator rights are needed (an
    administrator can choose "install for all users" on the first page).
 3. Windows may show **"Windows protected your PC"** (Microsoft Defender SmartScreen), because the program is not
-   code-signed. Click **More info**, check that the file is *StarExtractor-Setup-0.3.0.exe*, then **Run anyway**.
+   code-signed. Click **More info**, check that the file is *StarExtractor-Setup-0.3.1.exe*, then **Run anyway**.
 4. Pick a folder, optionally tick *Create a desktop shortcut*, and finish. Start it from the Start menu
    (*Star ExTractor*). At the first start it asks where to keep your data (the *data root*).
 

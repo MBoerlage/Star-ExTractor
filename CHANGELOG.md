@@ -1,6 +1,6 @@
 # Changelog
 
-## Unreleased
+## 0.3.1 (2026-11-24): no Plan-vs-Select warnings, Help updated
 
 **Reduce › Select**
 - Select no longer warns when the loaded stacks differ from the planned pair ("Target: the Plan says
