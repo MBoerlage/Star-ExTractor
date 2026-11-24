@@ -194,6 +194,58 @@ class Shooter:
                       "scrollable list", dlg)
             dlg.close()
 
+    def feedback_shots(self, win, dlg) -> None:
+        """Help › User Feedback: empty, filled in, exactly what is sent, sent and failed. A fake transport answers;
+        nothing ever reaches the live relay."""
+        from starextractor.core import feedback as fb
+        from starextractor.ui import dialogs as dl
+        from starextractor.ui import feedback_tab as ft
+
+        answers = [(200, b'{"ok": true, "ref": "FB-7K2M9Q"}'), OSError("offline"), OSError("offline")]
+        real = (fb.urllib_transport, fb.RETRY_AFTER_S, ft.FeedbackTab.ask_save, dl.save_file)
+
+        def fake(_url, _body, _headers, _timeout):
+            a = answers.pop(0)
+            if isinstance(a, Exception):
+                raise a
+            return a
+
+        fb.urllib_transport = fake
+        fb.RETRY_AFTER_S = 0.0
+        ft.FeedbackTab.ask_save = lambda self, r: True
+        zip_path = self.public / "Documents" / fb.default_zip_name()
+        dl.save_file = lambda *_a, **_k: str(zip_path)
+        try:
+            win.session.log("Wavelength: 5 lines, RMS 0.71 A (an example log line)")
+            dlg.show_feedback()
+            t = dlg.feedback
+            self.spin(0.2)
+            self.shot("34c_feedback_empty", "Help › User Feedback: type, message with counter, optional email, attach "
+                      "the log, See exactly what is sent, Save as file / Send, the privacy notice", dlg)
+            t.message.setPlainText("The Wavelength step found only four Balmer lines on my reference star tonight. "
+                                   "Hδ was there in the profile but not marked. The log is attached.")
+            t.email.setText("observer@example.org")
+            self.spin(0.1)
+            self.shot("34d_feedback_filled", "User Feedback filled in: a Problem with the log attached; Send is amber",
+                      dlg)
+            view = t.show_what_is_sent()
+            self.spin(0.2)
+            self.shot("34e_feedback_what_is_sent", "See exactly what is sent: the exact JSON payload (redacted log, "
+                      "the website field always empty)", view)
+            view.close()
+            t.send()
+            self.spin(0.2, until=lambda: not t.sending)
+            self.shot("34f_feedback_sent", "Sent: the reference FB-XXXXXX to quote, Send off for 30 s", dlg)
+            t.cooldown.stop()
+            t.message.setPlainText("A second message while offline.")
+            t.send()
+            self.spin(0.2, until=lambda: not t.sending)
+            self.shot("34g_feedback_failed", "Sending failed (offline): the message saved as a zip, with what to do "
+                      "next", dlg)
+        finally:
+            fb.urllib_transport, fb.RETRY_AFTER_S, ft.FeedbackTab.ask_save, dl.save_file = real
+            dlg.tabs.setCurrentIndex(0)
+
     def window(self, folder: Path, root: Path | None = None):
         """A window whose data root is `root` (default: the shared one); `folder` is only for the Plan's session."""
         from starextractor.core import datalocs
@@ -472,6 +524,7 @@ class Shooter:
         self.spin(0.3)
         self.shot("34b_help_reference_stars", "Help me at Where the reference stars come from: sources and dates, the "
                   "stars listed, the rules, grades, coverage and limits", dlg)
+        self.feedback_shots(win, dlg)
         dlg.close()
         win.close()
 

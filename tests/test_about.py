@@ -73,9 +73,9 @@ BLOCKS = [  # (label, its text lines joined with single spaces), in order
      "Astronomical Sciences (SAS), the BASS Project, Tom Field (RSpec), the French amateur spectroscopy community, "
      "and many others."),
 ]
-OLD = ("slit low res", "Francois Teyssier", "Reference star database", "Target resolution", "Teyssier", "Berardi",
-       "Reference Star Finder", "subset, with amendments")
-OLD_LIST_CREDIT = ("Teyssier", "Berardi", "Reference Star Finder", "subset, with amendments")
+OLD = ("slit low res", "Reference star database", "Target resolution", "Reference Star Finder",
+       "subset, with amendments")
+OLD_LIST_CREDIT = ("Reference Star Finder", "subset, with amendments")
 
 
 def _blocks(credits) -> list[tuple[str, str]]:

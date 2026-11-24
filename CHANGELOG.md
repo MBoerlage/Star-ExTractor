@@ -1,6 +1,6 @@
 # Changelog
 
-## Unreleased
+## 0.3.0 (2026-11-24): graded reference stars and User Feedback
 
 **Plan: a new reference-star list**
 - The bundled list is now our own selection from SIMBAD (starex_refcat v0.1.0, preset balanced): 1595 bright B and
@@ -12,6 +12,12 @@
 - **Faintest V** setting (2.0 to 6.5, default 6.5).
 - The chosen reference's grade goes into planned pairs and the observing plan (text and JSON); older plans and
   pairs look it up by name.
+
+**Help: User Feedback**
+- A **User Feedback** tab in the Help window: send a problem, idea or question (with your optional email and, if
+  you tick it, the application log with folder paths, user and computer names and email addresses removed). **See
+  exactly what is sent** shows the exact text; a reference comes back. When sending fails, the message can be saved
+  as a zip to send later; **Save as file…** works at any time. Nothing goes online until you press Send.
 
 **Credits and Help**
 - About, README and THIRD_PARTY_NOTICES credit the sources of the new list (SIMBAD, VizieR, the AAVSO VSX, the

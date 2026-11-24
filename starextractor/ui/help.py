@@ -1,5 +1,6 @@
 """Help me: the workflow guide (resources/help.md, bundled) in a window beside the app (not modal): contents on the
-left, the guide on the right, a find field. Opened from the "Help me" button in the top row or F1."""
+left, the guide on the right, a find field. Opened from the "Help me" button in the top row or F1. A second tab,
+User Feedback (ui/feedback_tab.py), sends a message to the developer; nothing goes online until its Send."""
 from __future__ import annotations
 
 from pathlib import Path
@@ -13,6 +14,7 @@ from PySide6.QtWidgets import (
     QListWidget,
     QListWidgetItem,
     QSplitter,
+    QTabWidget,
     QTextBrowser,
     QVBoxLayout,
     QWidget,
@@ -22,6 +24,7 @@ from .widgets.common import StatusLine, label
 
 HELP_FILE = Path(__file__).resolve().parents[1] / "resources" / "help.md"
 TITLE = "Help me"
+GUIDE_TAB, FEEDBACK_TAB = "Guide", "User Feedback"
 
 
 def help_text() -> str:
@@ -67,8 +70,21 @@ class HelpDialog(QDialog):
         split.addWidget(self.browser)
         split.setSizes([260, 780])
         split.setStretchFactor(1, 1)
-        lay.addWidget(split, 1)
-        lay.addWidget(self.found)
+        guide = QWidget()
+        gl = QVBoxLayout(guide)
+        gl.setContentsMargins(0, 8, 0, 0)
+        gl.addWidget(split, 1)
+        gl.addWidget(self.found)
+        from .feedback_tab import FeedbackTab
+
+        self.feedback = FeedbackTab(self._application_log)
+        self.tabs = QTabWidget()
+        self.tabs.setObjectName("helpTabs")
+        self.tabs.setDocumentMode(True)
+        self.tabs.addTab(guide, GUIDE_TAB)
+        self.tabs.addTab(self.feedback, FEEDBACK_TAB)
+        self.tabs.currentChanged.connect(lambda i: self.find.setVisible(i == 0))
+        lay.addWidget(self.tabs, 1)
         self.headings: list[tuple[int, str, int]] = []  # (level, text, block position)
         self._fill_contents()
 
@@ -111,6 +127,18 @@ class HelpDialog(QDialog):
                 self.contents.addItem(it)
             block = block.next()
 
+    def _application_log(self) -> str:
+        """The Log panel's lines of the open pair and the end of error.log (the feedback tab attaches it, redacted)."""
+        from starextractor.core.feedback import application_log
+        from starextractor.core.settings import app_dir
+
+        session = getattr(self.parent(), "session", None)
+        return application_log(list(getattr(session, "log_lines", []) or []), app_dir() / "error.log")
+
+    def show_feedback(self) -> None:
+        self.tabs.setCurrentWidget(self.feedback)
+        self.feedback.message.setFocus()
+
     def _go(self, item: QListWidgetItem) -> None:
         self.show_at(int(item.data(Qt.ItemDataRole.UserRole)))
 
@@ -124,7 +152,8 @@ class HelpDialog(QDialog):
         self.browser.verticalScrollBar().setValue(int(top))
 
     def show_section(self, title: str) -> bool:
-        """Open at the first heading containing `title` (case ignored)."""
+        """Open the guide at the first heading containing `title` (case ignored)."""
+        self.tabs.setCurrentIndex(0)
         for i, (_lvl, text, _pos) in enumerate(self.headings):
             if title.casefold() in text.casefold():
                 self.contents.setCurrentRow(i)

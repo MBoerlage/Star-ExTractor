@@ -384,8 +384,27 @@ screen is dimmed in night mode.
 ## Internet and privacy
 
 Star ExTractor works offline. It goes online only when you click: **Check with SIMBAD** (Plan, Acquisition),
-**Check VSX name** (Export), geocoding the site (Export) and **Use my location** (Plan). Your planning location is
-never written into a data file, a FITS header, an export or the observing plan.
+**Check VSX name** (Export), geocoding the site (Export), **Use my location** (Plan) and **Send** in Help › User
+Feedback. Your planning location is never written into a data file, a FITS header, an export or the observing plan.
+
+## User Feedback
+
+The **User Feedback** tab in this Help window sends a message to the developer: a problem, an idea, a question or
+anything else. Choose the type, write your message (up to 5000 characters), add your email if you would like a reply,
+and press **Send** (or Ctrl+Enter). A reference such as FB-A1B2C3 comes back; quote it if you write again.
+
+**What is sent**: your message, your optional email, the app version, the Windows version and, if you tick **Attach
+the application log** (on by default for problems), the log of the open pair and the end of the error log. Before
+anything is shown or sent, folder paths, your Windows user name, your computer name and email addresses inside the
+log are removed. **See exactly what is sent** shows the exact text. No location, no file paths and no images are sent.
+
+**Privacy**: the message goes to the developer's private feedback inbox. Your email is used only to reply. Feedback
+and emails are kept for 12 months. To have yours deleted, send a new message of type **Question** and quote your
+reference. Nothing goes online until you press Send, and your draft is not saved on disk.
+
+**When sending fails** (no internet, or the service is busy), the tab offers to save the message as a zip file
+(`starex-feedback-<date>.zip`, in Documents by default) with the message, the log and a short README. Keep it and send
+a new message from this tab when you are online. **Save as file…** makes the same zip at any time.
 
 ## When something goes wrong
 

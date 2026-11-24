@@ -314,6 +314,7 @@ QListWidget#helpContents::item:selected {{ background: {RAISED}; color: {TEXT}; 
 QToolButton#sessionChip::menu-indicator {{ image: none; width: 0; }}
 QPushButton::menu-indicator {{ image: none; width: 0; }}
 QTabBar {{ background: transparent; }}
+QTabWidget::pane {{ border: 0; background: transparent; }}
 QTabBar::tab {{ padding: 10px 26px; font-size: 14px; color: {MUTED}; background: transparent;
     border: 1px solid transparent; border-top-left-radius: 8px; border-top-right-radius: 8px;
     margin-right: 4px; }}

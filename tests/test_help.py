@@ -101,3 +101,13 @@ def test_reference_star_section_matches_the_bundled_list(win: MainWindow) -> Non
     assert "Where the reference stars come from" in titles
     assert titles.index("Where the reference stars come from") == titles.index("The reference star") + 1
     dlg.close()
+
+
+def test_user_feedback_section_in_the_contents(win: MainWindow) -> None:
+    text = hp.help_text()
+    section = text.split("## User Feedback", 1)[1].split("\n## ", 1)[0]
+    for fact in ("12 months", "See exactly what is sent", "zip", "Question", "user name", "computer name"):
+        assert fact in section, fact
+    dlg = win.open_help()
+    assert "User Feedback" in [h[1] for h in dlg.headings]
+    assert dlg.show_section("User Feedback") and dlg.tabs.currentIndex() == 0  # the guide section, not the tab
