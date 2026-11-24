@@ -1,4 +1,4 @@
-"""One view of who is being observed: Plan vs Select vs FITS OBJECT, spectral type for Response, checks."""
+"""One view of who is being observed: Select vs FITS OBJECT, spectral type for Response (Plan or SIMBAD), checks."""
 from __future__ import annotations
 
 from pathlib import Path
@@ -42,7 +42,7 @@ def test_checks_list_the_inconsistencies(tmp_path: Path) -> None:
     s.inputs["target"].update(name="P cyg", lights=[{"path": str(light), "used": True}])
     s.inputs["reference"]["name"] = "HD 193369"
     text = " | ".join(t for _l, t in idn.checks(s, site_known=False))
-    assert "the Plan says Gam Cas, Select says P cyg" in text
+    assert "the Plan says" not in text  # another star than planned is not a problem (removed 2026-11-24)
     assert "OBJECT = Sgrnov32026" in text
     assert "Reference: no spectral type" in text
     assert "target coordinates" in text and "site position" in text

@@ -1,6 +1,7 @@
 """Who is being observed, as the session knows it in several places: the Plan (target + chosen reference),
-Select (names, SIMBAD result, coordinates) and the FITS OBJECT of the lights. One place to compare them,
-pick the spectral type the Response step uses, and list the inconsistencies. No Qt, no network, no pixels
+Select (names, SIMBAD result, coordinates) and the FITS OBJECT of the lights. One place to pick the
+spectral type the Response step uses and list the inconsistencies (Select vs OBJECT, reference type, airmass inputs;
+not Plan vs Select: the observed star may differ from the planned one). No Qt, no network, no pixels
 (only the header of the first used light)."""
 from __future__ import annotations
 
@@ -100,9 +101,7 @@ def checks(session: Session, site_known: bool, airmass_on: bool = True) -> list[
         d = session.inputs[side]
         name = d.get("name", "")
         title = SIDE_TITLE[side]
-        pe = plan_entry(session, side)
-        if pe and name and not same_name(name, pe["name"]):
-            out.append(("warn", f"{title}: the Plan says {pe['name']}, Select says {name}."))
+        # No Plan-vs-Select name check: observing another star than planned is common, not a problem.
         obj = header_object(session, side) if has_input(session, side) else ""
         if obj and name and not same_name(obj, name):
             out.append(("info", f"{title}: Select says {name}, the stack header says OBJECT = {obj}."))

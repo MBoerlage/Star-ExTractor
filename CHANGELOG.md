@@ -1,5 +1,11 @@
 # Changelog
 
+## Unreleased
+
+**Reduce › Select**
+- Select no longer warns when the loaded stacks differ from the planned pair ("Target: the Plan says
+  X, Select says Y."): observing another star than planned is common.
+
 ## 0.3.0 (2026-11-24): graded reference stars and User Feedback
 
 **Plan: a new reference-star list**

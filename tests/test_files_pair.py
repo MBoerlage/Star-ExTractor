@@ -153,6 +153,27 @@ def test_size_same_file_time_gap_and_distance(tmp_path: Path, stacks: Path) -> N
 
 
 # 4 -------------------------------------------------------------------------------------------------------------
+def test_pair_other_than_planned_shows_no_mismatch(win: MainWindow, qtbot: QtBot, stacks: Path,
+                                                  tmp_path: Path) -> None:
+    """Observing another star than planned is common: no "the Plan says X, Select says Y" on any Reduce step."""
+    from starextractor.core.identity import plan_entry
+
+    src = _copy_pair(stacks, tmp_path / "elsewhere")
+    f = win.files_screen
+    for role in pr.ROLES:
+        f.cards[role].set_file(src[role])
+    assert f.load_pair()  # AG Dra + HD 145454
+    win.session.params["plan"] = {"n": 10,
+                                  "target": {"name": "Gam Cas", "ra_deg": 14.177, "dec_deg": 60.717},
+                                  "reference": {"name": "HD 4222", "ra": 11.3216, "dec": 55.2214, "chosen": True}}
+    assert plan_entry(win.session, "target") and plan_entry(win.session, "reference")
+    win.refresh_checks()
+    for screen in win.screens:
+        if hasattr(screen, "checks_lay"):
+            texts = [screen.checks_lay.itemAt(i).widget().text.text() for i in range(screen.checks_lay.count())]
+            assert not any("Plan says" in t for t in texts), (screen.stage.id, texts)
+
+
 def test_load_pair_feeds_geometry_and_extract(win: MainWindow, qtbot: QtBot, stacks: Path, tmp_path: Path) -> None:
     src = _copy_pair(stacks, tmp_path / "elsewhere")  # stacks outside the project folder are copied in
     f = win.files_screen
