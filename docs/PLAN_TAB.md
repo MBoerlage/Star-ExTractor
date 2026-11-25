@@ -36,7 +36,7 @@ Scope is deliberately small. Only these features are brought over from the older
 
 ## What the user does
 1. Types a target name (or pastes a designation).
-2. Clicks **Check with SIMBAD**. On success, RA/Dec (J2000), V magnitude and object type fill in. On failure or offline, the user types **RA/Dec manually** (needed for novae/transients that SIMBAD does not know yet). Manual RA/Dec accepts `hh mm ss.s` / `dd mm ss` and decimal degrees.
+2. Clicks **Check with SIMBAD**. On success, RA/Dec (J2000), V magnitude and object type fill in. When no SIMBAD server answers (CDS, the CfA mirror and Sesame are tried in turn; `docs/SPEC.md` › SIMBAD endpoints and fallback), a result saved in the last 30 days is used and marked; otherwise the user types **RA/Dec manually** (needed for novae/transients that SIMBAD does not know yet). Manual RA/Dec accepts `hh mm ss.s` / `dd mm ss` and decimal degrees.
 3. The tool lists the **N closest reference-star candidates** (default 10, user can change N) from a bundled catalog: name, distance on sky (deg), V, B-V, spectral type.
 4. The user picks one row as the reference star (optional). The choice and the target go into `session.json` and prefill the Files tab (now Select) (target name, RA/Dec, reference name) and the Response tab (reference spectral type, which maps to the Pickles template).
 

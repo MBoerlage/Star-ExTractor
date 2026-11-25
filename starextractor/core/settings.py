@@ -25,6 +25,7 @@ DEFAULTS: dict[str, Any] = {
     "unit": "A",
     "tolerances": {"gain_rel": 0.20, "offset_rel": 0.50, "temp_c": 3.0, "enabled": True},
     "last_folder": "",
+    "simbad": {"server": "auto"},  # auto | cds | cfa (core/simbad.py); debug_unreachable: ["cds"] fails a server
     "vsx_api_url": "",  # VSX URL template with {name}; empty = core.vsx.DEFAULT_URL (docs/FORMATS.md)
     "window": {},  # saved window geometry
     "library": {},  # Library tab: last selected pair (key), filter chip and search text

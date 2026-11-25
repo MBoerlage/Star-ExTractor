@@ -936,7 +936,7 @@ class AcquisitionScreen(QWidget):
         self.refresh_link()
 
     def resolve_simbad(self, role: str) -> None:
-        from starextractor.core.simbad import simbad_job
+        from starextractor.core.simbad import prefs, simbad_job
 
         name = self.names[role].text().strip()
         note = self.ident_notes[role]
@@ -946,22 +946,32 @@ class AcquisitionScreen(QWidget):
             return
         note.set("off", f"Asking SIMBAD for “{name}”…")
         note.show()
-        self.host.runner.submit(f"acq.simbad.{role}", simbad_job, name)
+        self.host.runner.submit(f"acq.simbad.{role}", simbad_job, name, prefs(self.host.settings))
 
     def on_simbad(self, role: str, res: dict[str, Any]) -> None:
+        from starextractor.core.simbad import UNREACHABLE, cached_text, log_line, source_label
+
         note = self.ident_notes[role]
+        attempts = res.get("attempts")
+        res = {k: v for k, v in res.items() if k != "attempts"}  # the sets file keeps the answer, not the log
         self.sets[role]["simbad"] = res
         self.sets[role]["from_plan"] = False
+        if attempts is not None:
+            self.host.session.log(f"Acquisition: {log_line({**res, 'attempts': attempts})}")
         if res.get("found"):
             self.sets[role]["coord_source"] = "simbad"
             sp = f" · {res['sp_type']}" if res.get("sp_type") else ""
-            note.set("ok", f"Resolved by SIMBAD as {res.get('main_id') or res['query']}{sp}.")
+            text = f"{source_label(res)}: {res.get('main_id') or res['query']}{sp}."
+            if res.get("cached"):
+                note.set("warn", f"{cached_text(res)} {text.split(': ', 1)[1]}")
+            else:
+                note.set("ok", text)
             self.host.session.log(f"Acquisition: SIMBAD {res['query']} = {res.get('main_id')}")
         elif res.get("offline"):
-            note.set("warn", "SIMBAD could not be reached (offline?). Pick “From header” or enter the coordinates "
-                             "by hand.")
+            note.set("warn", f"{UNREACHABLE} Pick “From header” or type them in the fields below.")
         else:
-            note.set("warn", f"“{res.get('query', '')}” is not known to SIMBAD.")
+            note.set("warn", f"{source_label(res)}: “{res.get('query', '')}” is not known. Pick “From header” or "
+                             "enter the coordinates by hand.")
         note.show()
         self._show_coords(role)
         self.persist()
@@ -1444,6 +1454,9 @@ class AcquisitionScreen(QWidget):
             self.stack_progress.setValue(int(f * 1000))
 
     def on_cancelled(self, slot: str) -> None:
+        if slot.startswith("acq.simbad."):
+            self.ident_notes[slot.rsplit(".", 1)[1]].set("off", "SIMBAD lookup stopped.")
+            return
         if slot == "acq.stack":
             self._stack_finished()
             self._show_result("off", "Stacking stopped. Nothing was written.")

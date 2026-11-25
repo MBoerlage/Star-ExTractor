@@ -64,6 +64,22 @@ spectral type, and RA/Dec fill in. A new nova or transient may not be in SIMBAD 
 (`hh mm ss.s` / `±dd mm ss`, or decimal degrees). The chip next to the position says where it came from: **SIMBAD**
 or **Manual**. The small copy buttons copy the bare RA or Dec for your capture program.
 
+**When SIMBAD does not answer.** The app asks SIMBAD in Strasbourg first and, when it does not answer within a few
+seconds, its mirror at CfA Harvard; if both are down it asks the Sesame name resolver (in Strasbourg, then at CfA). A
+lookup gives up after about 30 seconds and never freezes the window. The line under the field says who answered:
+
+- **SIMBAD (CDS Strasbourg)** or **SIMBAD (CfA mirror)**: a normal answer.
+- **SIMBAD via Sesame at …**: both SIMBAD servers were down; Sesame answered with the same data.
+- **SIMBAD: all servers unreachable; using the saved result from (a date)**: no server answered, so the app used what
+  SIMBAD said for this name in the last 30 days. Check it if the star is new to you.
+- **SIMBAD unreachable. You can enter the coordinates by hand.**: no server answered and nothing was saved. Type RA and
+  Dec in the fields (here, and in Acquisition with **Enter by hand**, or take them **From header**).
+- **… is not known**: the server answered, but SIMBAD does not have this name (try another name, or type RA/Dec).
+
+The server that answered goes first for the next lookups; Strasbourg gets another try after 10 minutes and at every
+start. Settings › **SIMBAD server** puts CfA Harvard first if Strasbourg is down for a long time; **Clear SIMBAD
+cache** forgets the saved results.
+
 ### The reference star
 
 **Reference star candidates** lists bright B and A main-sequence stars near the target on the sky, from a list
@@ -384,7 +400,7 @@ screen is dimmed in night mode.
 
 - Your **data root**: Stacks, Masters, Processed and Published (see *Before your first night*).
 - `%APPDATA%\StarExtractor\`: settings (including the planned pairs and your planning location), the instrument
-  profile, saved responses, the VSX cache and `error.log`.
+  profile, saved responses, the VSX and SIMBAD caches and `error.log`.
 - Nothing is written into the program folder.
 
 ## Internet and privacy

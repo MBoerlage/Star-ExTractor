@@ -23,7 +23,7 @@ this file). It is public by design; there are no secrets in the app.
 
 ```json
 {"v": 1, "type": "problem" | "idea" | "question" | "other", "message": "1..5000 characters",
- "email": "the user's own address for replies, or \"\"", "app_version": "0.3.1",
+ "email": "the user's own address for replies, or \"\"", "app_version": "0.3.2",
  "windows": "Windows 11 10.0.26100", "log": "redacted log tail, or \"\"", "website": ""}
 ```
 

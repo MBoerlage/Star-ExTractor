@@ -36,7 +36,9 @@ from starextractor.core import planned_pairs as pp
 from starextractor.core import reference_stars as rs
 from starextractor.core.coords import format_dec, format_ra, parse_coords
 from starextractor.core.reference_stars import ReferenceStarMatch, find_reference_stars
-from starextractor.core.simbad import simbad_job
+from starextractor.core.simbad import UNREACHABLE, cached_text, simbad_job, source_label
+from starextractor.core.simbad import log_line as simbad_log_line
+from starextractor.core.simbad import prefs as simbad_prefs
 
 from .. import dialogs, theme
 from ..log_panel import LogPanel
@@ -298,7 +300,7 @@ class PlanScreen(QWidget):
         v = res.get("vmag")
         parts = [res.get("otype") or "", f"V {v:.2f}" if isinstance(v, (int, float)) else "V —",
                  res.get("sp_type") or ""]
-        return f"SIMBAD: {res.get('query')} = {res.get('main_id')} · " + " · ".join(p for p in parts if p)
+        return f"{source_label(res)}: {res.get('query')} = {res.get('main_id')} · " + " · ".join(p for p in parts if p)
 
     # ---- target ------------------------------------------------------------------------------
     def check_simbad(self) -> None:
@@ -308,11 +310,13 @@ class PlanScreen(QWidget):
             return
         self.simbad_btn.setEnabled(False)
         self.simbad_status.set("off", f"Asking SIMBAD for “{name}”…")
-        self.host.runner.submit("plan.simbad", simbad_job, name)
+        self.host.runner.submit("plan.simbad", simbad_job, name, simbad_prefs(self.host.settings))
 
     def on_simbad(self, res: dict[str, Any]) -> None:
         self.simbad_btn.setEnabled(True)
         s = self.host.session
+        if res.get("attempts") is not None:
+            s.log(f"Plan: {simbad_log_line(res)}")
         if res.get("found"):
             self.ra.setText(format_ra(res["ra"]))
             self.dec.setText(format_dec(res["dec"]))
@@ -320,13 +324,15 @@ class PlanScreen(QWidget):
             self._apply_target(res.get("query") or self.name.text(), res["ra"], res["dec"], "simbad", res)
             s.log(f"Plan: target {res['query']} = {res['main_id']} ({res.get('sp_type') or 'no type'}): "
                   f"{format_ra(res['ra'])} {format_dec(res['dec'])}, source simbad")
-            self.simbad_status.set("ok", self._simbad_text(res))
+            if res.get("cached"):
+                self.simbad_status.set("warn", f"{cached_text(res)} {self._simbad_text(res).split(': ', 1)[1]}")
+            else:
+                self.simbad_status.set("ok", self._simbad_text(res))
         elif res.get("offline"):
-            self.simbad_status.set("warn", "SIMBAD could not be reached: type RA/Dec below.")
-            s.log(f"Plan: SIMBAD offline ({str(res.get('error', ''))[:80]})")
+            self.simbad_status.set("warn", f"{UNREACHABLE} Type RA/Dec below.")
         else:
-            self.simbad_status.set("warn", f"“{res.get('query')}” is not in SIMBAD (new nova or transient?): "
-                                           "type RA/Dec below.")
+            self.simbad_status.set("warn", f"{source_label(res)}: “{res.get('query')}” is not known (new nova or "
+                                           "transient?): type RA/Dec below.")
             s.log(f"Plan: {res.get('query')} not in SIMBAD")
 
     def _name_edited(self) -> None:

@@ -174,7 +174,7 @@ def test_simbad_header_and_hand_coordinates(win: MainWindow, qtbot: QtBot, tmp_p
                                             monkeypatch: pytest.MonkeyPatch) -> None:
     a = win.ensure_acquisition()
     res = simbad.SimbadResult("V8055 Sgr", True, "V* V8055 Sgr", 272.629, -28.1, "No*", "", 9.1)
-    monkeypatch.setattr(simbad, "lookup", lambda name, timeout=0, fetch=None: res)
+    monkeypatch.setattr(simbad, "lookup_detailed", simbad.fixed_answer(res))
     a.names["target"].setText("V8055 Sgr")
     a.resolve_simbad("target")
     qtbot.waitUntil(lambda: a.ras["target"].text() != "", timeout=5000)

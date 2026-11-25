@@ -59,21 +59,19 @@ def test_bad_coordinates_show_an_error(win: MainWindow) -> None:
 
 
 def test_simbad_offline_then_manual_entry(win: MainWindow, qtbot: QtBot, monkeypatch: pytest.MonkeyPatch) -> None:
-    def offline(name: str, timeout: float = 0, fetch=None):
-        raise simbad.LookupError_("SIMBAD lookup failed - no network")
-    monkeypatch.setattr(simbad, "lookup", offline)
+    monkeypatch.setattr(simbad, "lookup_detailed", simbad.fixed_answer(None))  # no server answers, nothing kept
     plan = win.ensure_plan()
     plan.name.setText("Nova Sgr 2026")
     plan.check_simbad()
     qtbot.waitUntil(lambda: plan.simbad_btn.isEnabled(), timeout=5000)
-    assert plan.simbad_status.state == "warn" and "could not be reached" in plan.simbad_status.text.text()
+    assert plan.simbad_status.state == "warn" and "SIMBAD unreachable" in plan.simbad_status.text.text()
     _type_coords(plan, "18 53 02", "-28 20 00")
     assert plan.table.rowCount() == 10
 
 
 def test_simbad_found_fills_position(win: MainWindow, qtbot: QtBot, monkeypatch: pytest.MonkeyPatch) -> None:
     res = simbad.SimbadResult("gam Cas", True, "* gam Cas", 14.17721289, 60.71674002, "Be*", "B0.5IVpe", 2.39)
-    monkeypatch.setattr(simbad, "lookup", lambda name, timeout=0, fetch=None: res)
+    monkeypatch.setattr(simbad, "lookup_detailed", simbad.fixed_answer(res))
     plan = win.ensure_plan()
     plan.name.setText("gam Cas")
     plan.check_simbad()
@@ -141,7 +139,7 @@ PCYG = simbad.SimbadResult("P Cyg", True, "* P Cyg", 304.44667489, 38.03293031, 
 
 
 def _simbad_pcyg(win: MainWindow, qtbot: QtBot, monkeypatch: pytest.MonkeyPatch):
-    monkeypatch.setattr(simbad, "lookup", lambda name, timeout=0, fetch=None: PCYG)
+    monkeypatch.setattr(simbad, "lookup_detailed", simbad.fixed_answer(PCYG))
     plan = win.ensure_plan()
     plan.name.setText("P Cyg")
     plan.check_simbad()

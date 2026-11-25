@@ -61,7 +61,7 @@ Master library: the Masters location (`<data root>\Masters\`, Settings › Data 
 - Per-frame table: time (UT), exposure, peak ADU, flag "near saturation" if peak ≥ 60 000, "Use" checkbox. Unticked frames are excluded; "Remove unticked" drops them from the list.
 - Align frames: off by default (fixed slit). If on, estimate Y shift per frame from the row-sum profile (sub-pixel cross-correlation) and shift before combining.
 - Write FITS with header copied from the first used frame plus `NCOMBINE`, `STACKMTH`, `HISTORY` lines for darks/bias used.
-- Target name: free text; "Verify with SIMBAD" (CDS Sesame, offline-safe: failure shows "offline" and offers From header / Enter by hand RA/Dec). Star name from header shown as hint.
+- Target name: free text; "Verify with SIMBAD" (SIMBAD with mirrors, see *SIMBAD endpoints and fallback*; when no server answers: a saved result, or From header / Enter by hand RA/Dec). Star name from header shown as hint.
 
 ### 5.2 Geometry (step 2)
 - Flip X / Flip Y options (profile default) so wavelength increases to the right.
@@ -193,3 +193,41 @@ Visible in the observing plan. Positions from `core/sky.py` (numpy, offline; acc
 
 ## 9. Out of scope (v1)
 Multiple instruments, echelle, flux calibration to absolute units, telluric removal by model, automatic upload to AVSpec/ARAS, radial-velocity measurement.
+
+## SIMBAD endpoints and fallback (core/simbad.py, 2026-11-25)
+
+Every SIMBAD lookup (Plan target, Acquisition target and reference; one per click, on a worker thread) asks, in
+this order, until one answers properly:
+
+| # | endpoint | query |
+|---|---|---|
+| 1 | SIMBAD, CDS Strasbourg: `https://simbad.cds.unistra.fr/simbad/sim-script` | POST `script=` (below) |
+| 2 | SIMBAD, CfA Harvard mirror: `https://simbad.cfa.harvard.edu/simbad/sim-script` | the same |
+| 3 | Sesame, CDS: `https://cds.unistra.fr/cgi-bin/nph-sesame/-oxpF/S?<name>` | GET, XML (names only) |
+| 4 | Sesame, CfA: `https://vizier.cfa.harvard.edu/viz-bin/nph-sesame/-oxpF/S?<name>` | the same |
+
+The script is the same on both SIMBAD mirrors: `output console=off script=off`, `format object
+"%IDLIST(1)|%COO(d;A D)|%OTYPE(S)|%SP(S)|%FLUXLIST(V;F)"`, `query id <name>` (the name on one line, control characters
+removed). It returns main id | RA Dec (deg) | object type | spectral type | V, or an `::error::` section; an error that
+says the identifier is unknown ("not found", "incorrect format", "no known catalog") is *not found*.
+
+- **Timeouts**: connect 4 s, read 10 s (`CONNECT_TIMEOUT_S`, `READ_TIMEOUT_S`), about 30 s for the whole lookup
+  (`BUDGET_S`). Each request runs on a daemon thread watched by the worker, so cancelling or closing the app never
+  waits on a socket (DNS included).
+- **Failure = next server at once**, each server at most once per lookup: no connection, DNS, TLS, timeout, any
+  redirect (not followed: on 2026-11-24 the CDS Sesame address redirected to the CfA one, which did not answer), any
+  HTTP status but 200, an HTML page, an empty, truncated or unreadable answer, an error that is not about the name.
+- **Not found** from a server that answered properly is final (also from Sesame, when it says "Nothing found").
+- **Order memory** (this session only): the server that answered goes first; the first server is tried again after
+  10 minutes (`RECHECK_S`) and at every start. Settings `simbad.server`: `auto` (default) | `cds` | `cfa` puts that
+  server first, the others stay as fallback.
+- **Cache**: found results in `%APPDATA%\StarExtractor\simbad_cache.json`, keyed by the name (lower case), 30 days.
+  Used only when every server failed; the result is marked `cached` with its date. Settings › Clear SIMBAD cache.
+- **Status** under the field: "SIMBAD (CDS Strasbourg)", "SIMBAD (CfA mirror)", "SIMBAD via Sesame at …",
+  "SIMBAD: all servers unreachable; using the saved result from <date>.", "SIMBAD unreachable. You can enter the
+  coordinates by hand."
+- **Log** (session log): which server answered, each failure by type only, and the times; never the name typed.
+- **Debug**: `"simbad": {"debug_unreachable": ["cds"]}` in settings.json makes those servers (keys `cds`, `cfa`,
+  `sesame-cds`, `sesame-cfa`, or a whole site `cds` / `cfa`) fail at once, to watch the fallback.
+- **Tests**: a fake transport and a fake clock only (`tests/test_simbad.py`); conftest makes the real transport
+  fail.

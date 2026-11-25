@@ -1,4 +1,4 @@
-"""Settings dialog: only settings that change what the app does (data locations, VSX endpoint).
+"""Settings dialog: only settings that change what the app does (data locations, SIMBAD server, VSX endpoint).
 Master tolerances live in Acquisition > Pre Processing settings. Observer, site and equipment live on the Export tab."""
 from __future__ import annotations
 
@@ -6,6 +6,7 @@ from PySide6.QtCore import QUrl
 from PySide6.QtGui import QDesktopServices
 from PySide6.QtWidgets import (
     QCheckBox,
+    QComboBox,
     QDialog,
     QDialogButtonBox,
     QFormLayout,
@@ -49,6 +50,21 @@ class SettingsDialog(QDialog):
         lay.addWidget(title)
         self.locations = DataLocations(settings, self)
         lay.addWidget(self.locations)
+
+        from starextractor.core import simbad
+
+        self.simbad_server = QComboBox()
+        for key, label in simbad.SERVERS.items():
+            self.simbad_server.addItem(label, key)
+        self.simbad_server.setCurrentIndex(max(0, self.simbad_server.findData(simbad.prefs(settings)["server"])))
+        form.addRow("SIMBAD server", self.simbad_server)
+        form.addRow("", _muted("Automatic asks SIMBAD in Strasbourg first and its mirror at CfA Harvard when "
+                               "Strasbourg does not answer (then the Sesame name resolver). A chosen server is "
+                               "asked first; the others stay as fallback. Used only when you press SIMBAD."))
+        self.clear_simbad = QPushButton("Clear SIMBAD cache")
+        self.clear_simbad.clicked.connect(self._clear_simbad)
+        self.clear_simbad.setEnabled((app_dir() / simbad.CACHE_FILE).exists())
+        form.addRow("", self.clear_simbad)
 
         self.vsx = QLineEdit(settings["vsx_api_url"] or DEFAULT_VSX)
         reset = QPushButton("Default")
@@ -96,6 +112,12 @@ class SettingsDialog(QDialog):
         super().showEvent(e)
         self.adjustSize()  # the styled buttons are taller than the size estimated before the style applied
 
+    def _clear_simbad(self) -> None:
+        from starextractor.core.simbad import CACHE_FILE
+
+        (app_dir() / CACHE_FILE).unlink(missing_ok=True)
+        self.clear_simbad.setEnabled(False)
+
     def _clear_vsx(self) -> None:
         (app_dir() / "vsx_cache.json").unlink(missing_ok=True)
         self.clear_vsx.setEnabled(False)
@@ -109,6 +131,7 @@ class SettingsDialog(QDialog):
             **self.locations.values(),
             "vsx_api_url": "" if vsx == DEFAULT_VSX else vsx,
             "celebrate_saves": self.celebrate.isChecked(),
+            "simbad": {**(self.settings["simbad"] or {}), "server": self.simbad_server.currentData()},
             "ui": {**(self.settings["ui"] or {}), "splash": self.splash.isChecked()},  # keeps the palette
         }
 

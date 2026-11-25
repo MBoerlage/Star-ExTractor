@@ -1,6 +1,6 @@
 [project]
 name = "starextractor"
-version = "0.3.1"
+version = "0.3.2"
 description = "Star ExTractor: spectroscopy reduction for low-resolution slit spectrographs (Star'Ex LR: stack, geometry, 1D extract, wavelength, response) and export for AAVSO AVSpec"
 license = "MIT"
 license-files = ["LICENSE"]

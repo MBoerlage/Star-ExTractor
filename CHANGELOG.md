@@ -1,5 +1,14 @@
 # Changelog
 
+## 0.3.2 (2026-11-25): SIMBAD lookups survive a dead server
+
+**SIMBAD lookups**
+- SIMBAD lookups fall back to mirrors and saved results: SIMBAD in Strasbourg, then its CfA Harvard mirror, then
+  the Sesame name resolver; short timeouts (a dead server costs seconds); the line under the field says who answered.
+  When no server answers, a result saved in the last 30 days is used and marked as such; otherwise the message says
+  to enter the coordinates by hand. Settings: **SIMBAD server** (Automatic / CDS Strasbourg / CfA Harvard) and
+  **Clear SIMBAD cache**.
+
 ## 0.3.1 (2026-11-24): no Plan-vs-Select warnings, Help updated
 
 **Reduce › Select**

@@ -1013,6 +1013,10 @@ class MainWindow(QMainWindow):
             self._masters_card().masters_done(["Create masters: stopped"])
         elif kind_of(slot) == "acq":
             self.ensure_acquisition().on_cancelled(slot)
+        elif slot == "plan.simbad":
+            plan = self.ensure_plan()
+            plan.simbad_btn.setEnabled(True)
+            plan.simbad_status.set("off", "SIMBAD lookup stopped.")
 
     # ---- keyboard, window, settings, errors ---------------------------------------------------
     SHORTCUTS = (

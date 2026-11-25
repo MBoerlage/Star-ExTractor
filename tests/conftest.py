@@ -32,6 +32,18 @@ def _isolated_home(tmp_path_factory: pytest.TempPathFactory, monkeypatch: pytest
     return home
 
 
+@pytest.fixture(autouse=True)
+def _no_simbad_network(monkeypatch: pytest.MonkeyPatch) -> None:
+    """No test ever reaches SIMBAD: the real transport fails at once (tests pass their own fake transport)."""
+    from starextractor.core import simbad
+
+    def offline(*_a, **_k):
+        raise ConnectionRefusedError("tests never go online")
+
+    monkeypatch.setattr(simbad, "http_transport", offline)
+    simbad.reset_memory()
+
+
 def pytest_collection_modifyitems(config: pytest.Config, items: list[pytest.Item]) -> None:
     if EXAMPLE.exists() or PROJECTS.exists():
         return

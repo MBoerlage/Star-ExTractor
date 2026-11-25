@@ -276,17 +276,18 @@ class Shooter:
         plan = win.ensure_plan()
         self.shot("01_plan_empty", "Plan tab, new session, nothing entered")
         res = simbad.SimbadResult("P Cyg", True, "* P Cyg", 304.44667, 38.03293, "s*b", "B1-2Ia-0ep", 4.82)
-        real = simbad.lookup
-        simbad.lookup = lambda name, timeout=0, fetch=None: res  # fixed answer, through the real job + slot
+        real = simbad.lookup_detailed
+        simbad.lookup_detailed = simbad.fixed_answer(res)  # fixed answer, through the real job + slot
         try:
             plan.name.setText("P Cyg")
             plan.check_simbad()
             self.spin(0.1, until=lambda: plan.simbad_btn.isEnabled())
         finally:
-            simbad.lookup = real
+            simbad.lookup_detailed = real
         self.shot("02_plan_simbad_candidates", "Plan: P Cyg resolved (SIMBAD answer fixed for the run), the 10 "
                                                "nearest good and ok reference candidates with their Grade chips")
         self.plan_grades(win, plan)
+        self.plan_simbad_states(plan)
         plan.use_selected(0)
         sa = plan.copy_target_btn
         while sa is not None and not hasattr(sa, "ensureWidgetVisible"):
@@ -296,6 +297,46 @@ class Shooter:
         self.shot("03_plan_observing_plan", "Plan: reference chosen; observing plan with target and reference side "
                                             "by side and the RA/Dec copy buttons")
         win.close()
+
+    def plan_simbad_states(self, plan) -> None:
+        """The SIMBAD status line in its four states: the main server, the CfA mirror, a saved result, unreachable.
+        A fake transport answers (core/simbad.py tries the real servers in the same order); nothing goes online."""
+        from starextractor.core import simbad
+
+        answer = b"* P Cyg|304.44667 38.03293|s*b|B1-2Ia-0ep|4.82\n"
+        down = ConnectionRefusedError("down")
+
+        def fake(fail: tuple[str, ...]):
+            def call(method, url, body, headers, connect_timeout, read_timeout):
+                key = next(e.key for e in simbad.ENDPOINTS if url.startswith(e.url))
+                if key in fail or (fail == ("all",)):
+                    raise down
+                return 200, answer
+            return call
+
+        real = simbad.http_transport
+        try:
+            for name, fail, what in (
+                    ("02e_plan_simbad_main", (), "SIMBAD answered by the main server: SIMBAD (CDS Strasbourg)"),
+                    ("02f_plan_simbad_mirror", ("cds",), "Strasbourg down: SIMBAD (CfA mirror) answered"),
+                    ("02g_plan_simbad_saved", ("all",), "No server answered: the result saved earlier, with its date"),
+                    ("02h_plan_simbad_unreachable", ("all",), "No server answered and nothing saved: enter the "
+                                                              "coordinates by hand")):
+                simbad.reset_memory()
+                simbad.http_transport = fake(fail)
+                if name.endswith("unreachable"):
+                    simbad.cache_path().unlink(missing_ok=True)
+                plan.name.setText("P Cyg")
+                plan.check_simbad()
+                self.spin(0.1, until=lambda: plan.simbad_btn.isEnabled())
+                self.shot(name, f"Plan › Target: {what}")
+            simbad.reset_memory()
+            simbad.http_transport = fake(())
+            plan.check_simbad()  # back to the normal answer for the shots after these
+            self.spin(0.1, until=lambda: plan.simbad_btn.isEnabled())
+        finally:
+            simbad.http_transport = real
+            simbad.reset_memory()
 
     def plan_grades(self, win, plan) -> None:
         """The reference list around Sheliak: the nearer-poor hint, Include poor-grade stars (best tag), Faintest V
